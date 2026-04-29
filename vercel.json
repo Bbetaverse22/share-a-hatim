@@ -1,0 +1,9 @@
+{
+  "outputDirectory": ".",
+  "headers": [
+    {
+      "source": "/(.*).js",
+      "headers": [{ "key": "Content-Type", "value": "text/javascript" }]
+    }
+  ]
+}

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hatim Paylaşım</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#1a4a35" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Hatim" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<!-- Firebase config — baked in, no setup screen needed -->
+<script>
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDxdOyg1FGEcXWcWjUqrdqY_7u8uCjwbHY",
+  authDomain: "hatim-share.firebaseapp.com",
+  databaseURL: "https://hatim-share-default-rtdb.firebaseio.com",
+  projectId: "hatim-share",
+  storageBucket: "hatim-share.firebasestorage.app",
+  messagingSenderId: "1026428273826",
+  appId: "1:1026428273826:web:1e16ca7216c001dbfb03fb",
+  measurementId: "G-56ESE68WJF"
+};
+</script>
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<!-- React -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font-family: 'Nunito', sans-serif; min-height: 100vh; transition: background 0.4s, color 0.4s; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+  .geo-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cpolygon points='40,4 46,20 63,13 56,30 72,36 56,42 63,59 46,52 40,68 34,52 17,59 24,42 8,36 24,30 17,13 34,20' fill='%23000'/%3E%3C/svg%3E");
+    background-size: 80px 80px;
+  }
+  #root { position: relative; z-index: 1; min-height: 100vh; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+  @keyframes scaleIn { from { opacity:0; transform:scale(0.94); } to { opacity:1; transform:scale(1); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .fade-in { animation: fadeIn 0.35s ease both; }
+  .scale-in { animation: scaleIn 0.28s ease both; }
+  .modal-backdrop { position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
+  .spinner { width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.7s linear infinite; }
+</style>
+<script>
+  // Force clear old service worker caches
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(r => r.unregister());
+    });
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+</script>
+</head>
+<body>
+<div class="geo-bg"></div>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+// ── Juz data ─────────────────────────────────────────────────────────────────
+const JUZ_DATA = [
+  { n:1,  ar:"أَلَمْ",           tr:"Elif Lâm Mim",    start:1,   end:21  },
+  { n:2,  ar:"سَيَقُولُ",        tr:"Seyekûlü",        start:22,  end:41  },
+  { n:3,  ar:"تِلْكَ الرُّسُلُ", tr:"Tilker-Rusül",    start:42,  end:61  },
+  { n:4,  ar:"لَن تَنَالُوا",    tr:"Len Tenâlû",      start:62,  end:81  },
+  { n:5,  ar:"وَالْمُحْصَنَاتُ", tr:"Vel-Muhsanât",    start:82,  end:101 },
+  { n:6,  ar:"لَا يُحِبُّ",      tr:"Lâ Yühıbbü",      start:102, end:121 },
+  { n:7,  ar:"وَإِذَا سَمِعُوا", tr:"Ve İzâ Semi'û",   start:122, end:141 },
+  { n:8,  ar:"وَلَوْ أَنَّنَا",  tr:"Ve Lev Ennenâ",   start:142, end:161 },
+  { n:9,  ar:"قَالَ الْمَلَأُ",  tr:"Kâlel-Melê",      start:162, end:181 },
+  { n:10, ar:"وَاعْلَمُوا",      tr:"Va'lemû",          start:182, end:201 },
+  { n:11, ar:"يَعْتَذِرُونَ",    tr:"Ya'tezirûn",       start:202, end:221 },
+  { n:12, ar:"وَمَا مِن دَابَّة",tr:"Ve Mâ Min Dâbbe",  start:222, end:241 },
+  { n:13, ar:"وَمَا أُبَرِّئُ",  tr:"Ve Mâ Überiü",    start:242, end:261 },
+  { n:14, ar:"رُّبَمَا",         tr:"Rübemâ",           start:262, end:281 },
+  { n:15, ar:"سُبْحَانَ",        tr:"Sübhânellezi",     start:282, end:301 },
+  { n:16, ar:"قَالَ أَلَمْ",     tr:"Kâle Elem",        start:302, end:321 },
+  { n:17, ar:"اقْتَرَبَ",        tr:"İkterebe",         start:322, end:341 },
+  { n:18, ar:"قَدْ أَفْلَحَ",    tr:"Kad Efleha",       start:342, end:361 },
+  { n:19, ar:"وَقَالَ الَّذِينَ",tr:"Ve Kalellezine",   start:362, end:381 },
+  { n:20, ar:"أَمَّنْ خَلَقَ",   tr:"Emmen Haleka",     start:382, end:401 },
+  { n:21, ar:"اتْلُ مَا أُوحِيَ",tr:"Utlü Mâ Ûhıye",  start:402, end:421 },
+  { n:22, ar:"وَمَن يَقْنُتْ",   tr:"Ve Men Yaknut",    start:422, end:441 },
+  { n:23, ar:"وَمَا لِيَ",       tr:"Ve Mâ Li",         start:442, end:461 },
+  { n:24, ar:"فَمَنْ أَظْلَمُ",  tr:"Femen Azlemü",     start:462, end:481 },
+  { n:25, ar:"إِلَيْهِ يُرَدُّ", tr:"İleyhi Yüreddü",   start:482, end:501 },
+  { n:26, ar:"حمٓ",              tr:"Hâ Mim",           start:502, end:521 },
+  { n:27, ar:"قَالَ فَمَا",      tr:"Kâle Femâ",        start:522, end:541 },
+  { n:28, ar:"قَدْ سَمِعَ",      tr:"Kad Semia",        start:542, end:561 },
+  { n:29, ar:"تَبَارَكَ",        tr:"Tebâreke",         start:562, end:581 },
+  { n:30, ar:"عَمَّ",            tr:"Amme",             start:582, end:604 },
+];
+const TOTAL_PAGES = 604;
+
+// ── Cevşen data ──────────────────────────────────────────────────────────────
+const CEVSEN_DATA = Array.from({length:10}, (_,i) => ({
+  n: i+1,
+  start: i*10+1,
+  end: i*10+10,
+  label: `${i*10+1}–${i*10+10}. Bölüm`,
+}));
+
+// ── Type config ───────────────────────────────────────────────────────────────
+const TYPE_CONFIG = {
+  quran: {
+    label: 'Kuran Hatmi',
+    emoji: '📖',
+    sections: JUZ_DATA,
+    totalItems: 604,
+    itemLabel: 'sayfa',
+    sectionLabel: 'CÜZ',
+    getItemLink: n => `https://quran.com/page/${n}`,
+    linkLabel: '📖 Oku',
+  },
+  cevsen: {
+    label: 'Cevşen Hatmi',
+    emoji: '🌙',
+    sections: CEVSEN_DATA,
+    totalItems: 100,
+    itemLabel: 'bölüm',
+    sectionLabel: 'BÖLÜM',
+    getItemLink: n => { const start = Math.floor((n-1)/10)*10+1; return `https://herkul.app/cevsen-sesli/${start}~${start+9}`; },
+    linkLabel: '📖 Oku',
+  },
+};
+
+// ── Themes ───────────────────────────────────────────────────────────────────
+const THEMES = {
+  zumrut: { bg:"oklch(96% 0.018 80)", surface:"oklch(99% 0.010 80)", surfaceAlt:"oklch(93% 0.022 80)", primary:"oklch(30% 0.09 160)", gold:"oklch(68% 0.13 75)", goldLight:"oklch(88% 0.08 80)", text:"oklch(18% 0.03 80)", textMuted:"oklch(52% 0.03 80)", border:"oklch(86% 0.020 80)", cardFree:"oklch(99% 0.010 80)", cardClaimed:"oklch(88% 0.06 165)", cardDone:"oklch(83% 0.09 160)", cardPartial:"oklch(90% 0.05 80)", shadow:"0 2px 12px oklch(0% 0 0 / 0.08)", shadowHover:"0 6px 24px oklch(0% 0 0 / 0.14)" },
+  gece:   { bg:"oklch(12% 0.025 250)", surface:"oklch(17% 0.025 250)", surfaceAlt:"oklch(22% 0.025 250)", primary:"oklch(68% 0.13 75)", gold:"oklch(76% 0.14 75)", goldLight:"oklch(28% 0.06 75)", text:"oklch(92% 0.010 80)", textMuted:"oklch(62% 0.015 80)", border:"oklch(28% 0.020 250)", cardFree:"oklch(20% 0.025 250)", cardClaimed:"oklch(22% 0.04 160)", cardDone:"oklch(26% 0.06 155)", cardPartial:"oklch(23% 0.03 75)", shadow:"0 2px 12px oklch(0% 0 0 / 0.35)", shadowHover:"0 6px 24px oklch(0% 0 0 / 0.55)" },
+  safran: { bg:"oklch(95% 0.025 55)", surface:"oklch(98% 0.015 55)", surfaceAlt:"oklch(91% 0.030 55)", primary:"oklch(46% 0.13 38)", gold:"oklch(68% 0.13 75)", goldLight:"oklch(90% 0.07 70)", text:"oklch(18% 0.025 55)", textMuted:"oklch(50% 0.025 55)", border:"oklch(85% 0.025 55)", cardFree:"oklch(98% 0.015 55)", cardClaimed:"oklch(88% 0.06 75)", cardDone:"oklch(82% 0.10 60)", cardPartial:"oklch(91% 0.04 55)", shadow:"0 2px 12px oklch(0% 0 0 / 0.07)", shadowHover:"0 6px 24px oklch(0% 0 0 / 0.12)" },
+};
+
+// ── Firebase ─────────────────────────────────────────────────────────────────
+let _db = null;
+function getDb() { return _db; }
+function initFirebase(cfg) {
+  try {
+    if (firebase.apps.length) firebase.apps.forEach(a => a.delete());
+    firebase.initializeApp(cfg);
+    _db = firebase.database();
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+// ── Local utils ───────────────────────────────────────────────────────────────
+function ls(key, def) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch { return def; } }
+function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+function formatDate(ts) { if (!ts) return ''; return new Date(ts).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' }); }
+function getHashRoute() { const h = window.location.hash; if (h.startsWith('#hatim/')) return { page:'hatim', id:h.slice(7) }; return { page:'dashboard' }; }
+
+// ── Firebase hooks ────────────────────────────────────────────────────────────
+function useHatim(id) {
+  const [hatim, setHatim] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!id || !_db) { setLoading(false); return; }
+    const ref = _db.ref(`hatims/${id}`);
+    const unsub = ref.on('value', snap => { setHatim(snap.val()); setLoading(false); });
+    return () => ref.off('value', unsub);
+  }, [id]);
+  return { hatim, loading };
+}
+
+function useMyHatimIds() {
+  const [ids, setIds] = useState(() => ls('sha_my_hatims', []));
+  const add = useCallback(id => {
+    setIds(prev => { const next = prev.includes(id) ? prev : [id, ...prev]; lsSet('sha_my_hatims', next); return next; });
+  }, []);
+  const remove = useCallback(id => {
+    setIds(prev => { const next = prev.filter(x => x !== id); lsSet('sha_my_hatims', next); return next; });
+  }, []);
+  return { ids, add, remove };
+}
+
+// ── Primitive UI ──────────────────────────────────────────────────────────────
+function GoldDivider() {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:12, margin:'14px 0' }}>
+      <div style={{ flex:1, height:1, background:'var(--gold)', opacity:0.4 }} />
+      <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 8.5,5 13,5 9.5,7.8 11,12 7,9.5 3,12 4.5,7.8 1,5 5.5,5" fill="var(--gold)" opacity="0.9" /></svg>
+      <div style={{ flex:1, height:1, background:'var(--gold)', opacity:0.4 }} />
+    </div>
+  );
+}
+
+function Btn({ children, variant='primary', small, onClick, disabled, style }) {
+  const vs = { primary:{ background:'var(--primary)', color:'#fff' }, gold:{ background:'var(--gold)', color:'#fff' }, ghost:{ background:'transparent', color:'var(--text)', border:'1.5px solid var(--border)' }, danger:{ background:'oklch(55% 0.14 25)', color:'#fff' }, soft:{ background:'var(--surfaceAlt)', color:'var(--text)' } };
+  return <button disabled={disabled} onClick={onClick} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, border:'none', cursor:disabled?'not-allowed':'pointer', fontFamily:'Nunito,sans-serif', fontWeight:700, transition:'opacity 0.15s', borderRadius:10, padding:small?'7px 16px':'11px 24px', fontSize:small?13:15, opacity:disabled?0.5:1, boxShadow:'var(--shadow)', ...vs[variant], ...style }} onMouseEnter={e=>{ if(!disabled)e.currentTarget.style.opacity='0.82'; }} onMouseLeave={e=>{ e.currentTarget.style.opacity=disabled?'0.5':'1'; }}>{children}</button>;
+}
+
+function Inp({ label, value, onChange, type='text', placeholder, required, max, min, hint }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+      {label && <label style={{ fontSize:12, fontWeight:800, color:'var(--textMuted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>}
+      <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} required={required} max={max} min={min}
+        style={{ padding:'10px 14px', borderRadius:10, fontSize:14, border:'1.5px solid var(--border)', background:'var(--surface)', color:'var(--text)', fontFamily:'Nunito,sans-serif', outline:'none', transition:'border-color 0.2s' }}
+        onFocus={e=>e.target.style.borderColor='var(--gold)'} onBlur={e=>e.target.style.borderColor='var(--border)'} />
+      {hint && <div style={{ fontSize:11, color:'var(--textMuted)', lineHeight:1.5 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function Textarea({ label, value, onChange, placeholder, rows=5 }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+      {label && <label style={{ fontSize:12, fontWeight:800, color:'var(--textMuted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>}
+      <textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={rows}
+        style={{ padding:'10px 14px', borderRadius:10, fontSize:13, border:'1.5px solid var(--border)', background:'var(--surface)', color:'var(--text)', fontFamily:'monospace', outline:'none', resize:'vertical', lineHeight:1.5 }}
+        onFocus={e=>e.target.style.borderColor='var(--gold)'} onBlur={e=>e.target.style.borderColor='var(--border)'} />
+    </div>
+  );
+}
+
+function Modal({ children, onClose, title, subtitle, wide }) {
+  return (
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose&&onClose()}>
+      <div className="scale-in" style={{ background:'var(--surface)', borderRadius:20, padding:28, width:'100%', maxWidth:wide?720:480, boxShadow:'0 20px 60px oklch(0% 0 0 / 0.28)', maxHeight:'90vh', overflowY:'auto' }}>
+        {title && (
+          <>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4 }}>
+              <div>
+                <h2 style={{ fontFamily:'Amiri,serif', fontSize:22, color:'var(--text)' }}>{title}</h2>
+                {subtitle && <p style={{ fontSize:12, color:'var(--textMuted)', marginTop:2 }}>{subtitle}</p>}
+              </div>
+              {onClose && <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', fontSize:22, color:'var(--textMuted)', lineHeight:1, padding:4 }}>×</button>}
+            </div>
+            <GoldDivider />
+          </>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ProgressRing({ pct, size=72, stroke=6 }) {
+  const r = (size-stroke)/2, circ = 2*Math.PI*r, dash = (pct/100)*circ;
+  return (
+    <svg width={size} height={size} style={{ transform:'rotate(-90deg)' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--gold)" strokeWidth={stroke} strokeDasharray={`${dash} ${circ-dash}`} strokeLinecap="round" style={{ transition:'stroke-dasharray 0.6s ease' }} />
+    </svg>
+  );
+}
+
+function Spinner() { return <div className="spinner"></div>; }
+
+// ── Firebase Setup Screen ─────────────────────────────────────────────────────
+function SetupScreen({ onConfigured }) {
+  const [json, setJson] = useState('');
+  const [error, setError] = useState('');
+  const [testing, setTesting] = useState(false);
+
+  const handleSave = async () => {
+    setError(''); setTesting(true);
+    try {
+      const cfg = JSON.parse(json.trim());
+      if (!cfg.databaseURL) throw new Error('databaseURL eksik — Firebase konsolundan kopyalayın.');
+      const ok = initFirebase(cfg);
+      if (!ok) throw new Error('Firebase başlatılamadı. Config\'i kontrol edin.');
+      // Test connection
+      await _db.ref('.info/connected').once('value');
+      lsSet('sha_firebase_cfg', cfg);
+      onConfigured();
+    } catch(e) {
+      setError(e.message || 'Hata oluştu.');
+    }
+    setTesting(false);
+  };
+
+  return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <div className="scale-in" style={{ background:'var(--surface)', borderRadius:24, padding:36, maxWidth:520, width:'100%', boxShadow:'var(--shadowHover)' }}>
+        <div style={{ textAlign:'center', marginBottom:24 }}>
+          <div style={{ fontFamily:'Amiri,serif', fontSize:36, color:'var(--gold)', marginBottom:8 }}>☽</div>
+          <h1 style={{ fontFamily:'Amiri,serif', fontSize:28, color:'var(--text)', marginBottom:6 }}>Hatim Paylaşım</h1>
+          <p style={{ fontSize:13, color:'var(--textMuted)', lineHeight:1.7 }}>
+            Uygulamayı başlatmak için ücretsiz bir Firebase projesi gerekiyor.<br/>
+            Bir kez yapılandırın — sonra paylaşın.
+          </p>
+        </div>
+        <GoldDivider />
+
+        {/* Step by step */}
+        <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:20 }}>
+          {[
+            ['1', 'console.firebase.google.com adresine gidin, "Proje oluştur" tıklayın.'],
+            ['2', 'Sol menüden Realtime Database → "Oluştur" → Test modunda başlat.'],
+            ['3', 'Proje Ayarları (⚙️) → "Uygulamalarınız" → Web uygulaması ekle → SDK kurulum kodunu kopyalayın.'],
+            ['4', 'Aşağıya sadece firebaseConfig = { ... } içindeki JSON\'u yapıştırın.'],
+          ].map(([n, t]) => (
+            <div key={n} style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+              <div style={{ minWidth:24, height:24, borderRadius:'50%', background:'var(--gold)', color:'#fff', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{n}</div>
+              <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.5, paddingTop:2 }}>{t}</div>
+            </div>
+          ))}
+        </div>
+
+        <Textarea label="Firebase Config (JSON)" value={json} onChange={setJson} placeholder={'{\n  "apiKey": "...",\n  "authDomain": "...",\n  "databaseURL": "https://your-project-default-rtdb.firebaseio.com",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'} rows={8} />
+
+        {error && <div style={{ marginTop:10, padding:'10px 14px', borderRadius:10, background:'oklch(95% 0.04 25)', color:'oklch(40% 0.15 25)', fontSize:13, fontWeight:600 }}>⚠️ {error}</div>}
+
+        <Btn onClick={handleSave} disabled={!json.trim() || testing} style={{ width:'100%', marginTop:16 }}>
+          {testing ? 'Bağlanıyor...' : '✦ Kaydet ve Başlat'}
+        </Btn>
+
+        <p style={{ fontSize:11, color:'var(--textMuted)', textAlign:'center', marginTop:14, lineHeight:1.6 }}>
+          Config bu cihaza kaydedilir. Başka cihazlarda da aynı adımları tekrarlayın.<br/>
+          Firebase ücretsiz planı bu uygulama için fazlasıyla yeterlidir.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Share Modal ───────────────────────────────────────────────────────────────
+function ShareModal({ hatimId, onClose }) {
+  const url = `${window.location.origin}${window.location.pathname}#hatim/${hatimId}`;
+  const [copied, setCopied] = useState(false);
+  const copy = () => { navigator.clipboard.writeText(url).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2200); }); };
+  return (
+    <Modal title="Hatimi Paylaş" subtitle="Bu linki paylaşan herkes cüz üstlenebilir" onClose={onClose}>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        <div style={{ background:'var(--surfaceAlt)', borderRadius:10, padding:'12px 16px', fontSize:12, wordBreak:'break-all', color:'var(--text)', fontFamily:'monospace' }}>{url}</div>
+        <Btn onClick={copy} variant={copied?'ghost':'gold'}>{copied?'✓ Kopyalandı!':'📋 Linki Kopyala'}</Btn>
+        <div style={{ display:'flex', gap:8 }}>
+          <a href={`https://wa.me/?text=${encodeURIComponent('Hatim oluşturdum, cüz almak için: ' + url)}`} target="_blank" rel="noopener noreferrer" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'9px 16px', borderRadius:10, background:'#25D366', color:'#fff', fontWeight:700, fontSize:13, textDecoration:'none' }}>
+            WhatsApp
+          </a>
+        </div>
+        <p style={{ fontSize:11, color:'var(--textMuted)', textAlign:'center', lineHeight:1.6 }}>Linki açan herkes gerçek zamanlı güncellemeyi görecek.</p>
+      </div>
+    </Modal>
+  );
+}
+
+// ── Page Modal ────────────────────────────────────────────────────────────────
+function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePages, onUnclaimPage, onClose, typeCfg }) {
+  typeCfg = typeCfg || TYPE_CONFIG.quran;
+  const [nameInput, setNameInput] = useState(currentUser || '');
+  const [selected, setSelected] = useState([]);
+
+  const pages = useMemo(() => { const ps = []; for(let p=juz.start;p<=juz.end;p++) ps.push(p); return ps; }, [juz]);
+  const getState = p => { const e = pageList[p]; if (!e) return 'free'; return e.completedAt ? 'done' : 'claimed'; };
+  const toggleSelect = p => { if (getState(p) !== 'free') return; setSelected(prev => prev.includes(p) ? prev.filter(x=>x!==p) : [...prev, p]); };
+
+  const done = pages.filter(p=>getState(p)==='done').length;
+  const claimed = pages.filter(p=>getState(p)==='claimed').length;
+  const free = pages.filter(p=>getState(p)==='free').length;
+  const bgMap = { free:'var(--cardFree)', claimed:'var(--cardClaimed)', done:'var(--cardDone)' };
+  const { itemLabel, getItemLink, linkLabel } = typeCfg;
+
+  const claimAll = () => {
+    if (!nameInput.trim()) return;
+    const freePgs = pages.filter(p => getState(p)==='free');
+    onClaimPages(freePgs, nameInput.trim());
+    onClose();
+  };
+  const claimSelected = () => {
+    if (!nameInput.trim() || !selected.length) return;
+    onClaimPages(selected, nameInput.trim());
+    setSelected([]);
+  };
+
+  return (
+    <Modal title={`${juz.n}. Cüz`} subtitle={`Sayfa ${juz.start}–${juz.end}`} onClose={onClose} wide>
+      <div style={{ display:'flex', gap:12, marginBottom:14 }}>
+        {[['Tamam',done,'var(--primary)'],['Okunuyor',claimed,'var(--gold)'],['Boş',free,'var(--textMuted)']].map(([l,v,c])=>(
+          <div key={l} style={{ flex:1, background:'var(--surfaceAlt)', borderRadius:10, padding:'10px 0', textAlign:'center' }}>
+            <div style={{ fontSize:18, fontWeight:800, color:c }}>{v}</div>
+            <div style={{ fontSize:11, color:'var(--textMuted)' }}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:'flex', gap:8, marginBottom:12, alignItems:'flex-end', flexWrap:'wrap' }}>
+        <div style={{ flex:1, minWidth:180 }}>
+          <Inp label="Adınız / Your Name" value={nameInput} onChange={setNameInput} placeholder="Ahmed..." />
+        </div>
+        <Btn variant="gold" small onClick={claimAll} disabled={!nameInput.trim()||free===0}>Tümünü Üstlen</Btn>
+      </div>
+      {selected.length > 0 && (
+        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10, padding:'8px 12px', background:'var(--goldLight)', borderRadius:10 }}>
+          <span style={{ flex:1, fontSize:13, fontWeight:600, color:'var(--text)' }}>{selected.length} sayfa seçildi</span>
+          <Btn variant="primary" small onClick={claimSelected} disabled={!nameInput.trim()}>Üstlen</Btn>
+          <Btn variant="ghost" small onClick={()=>setSelected([])}>İptal</Btn>
+        </div>
+      )}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(68px, 1fr))', gap:6 }}>
+        {pages.map(p => {
+          const st = getState(p); const e = pageList[p]||{}; const isSel = selected.includes(p);
+          return (
+            <div key={p} onClick={()=>st==='free'&&toggleSelect(p)}
+              style={{ background:isSel?'var(--gold)':bgMap[st], border:`1.5px solid ${isSel?'var(--gold)':'var(--border)'}`, borderRadius:10, padding:'8px 6px', textAlign:'center', cursor:st==='free'?'pointer':'default', transition:'transform 0.15s' }}
+              onMouseEnter={ev=>{ if(st==='free') ev.currentTarget.style.transform='scale(1.07)'; }}
+              onMouseLeave={ev=>{ ev.currentTarget.style.transform='none'; }}
+            >
+              <div style={{ fontSize:15, fontWeight:800, color:isSel?'#fff':'var(--text)', lineHeight:1 }}>{p}</div>
+              <div style={{ fontSize:9, color:isSel?'rgba(255,255,255,0.7)':'var(--textMuted)', marginTop:1 }}>{itemLabel}</div>
+              {st==='claimed' && <div style={{ fontSize:9, color:'var(--primary)', fontWeight:700, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.claimedBy}</div>}
+              {st==='done' && <div style={{ fontSize:9, color:'var(--primary)', fontWeight:800, marginTop:2 }}>✓</div>}
+              <a href={getItemLink(p)} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
+                style={{ display:'block', fontSize:9, color:isSel?'rgba(255,255,255,0.9)':'var(--gold)', fontWeight:700, marginTop:3, textDecoration:'none' }}>{linkLabel}</a>
+              {st==='claimed' && (
+                <div style={{ display:'flex', gap:2, marginTop:3, justifyContent:'center' }}>
+                  <button onClick={ev=>{ev.stopPropagation();onCompletePages([p]);}} style={{ fontSize:9, padding:'2px 5px', borderRadius:5, border:'none', cursor:'pointer', background:'var(--primary)', color:'#fff', fontWeight:700 }}>✓</button>
+                  <button onClick={ev=>{ev.stopPropagation();onUnclaimPage(p);}} style={{ fontSize:9, padding:'2px 5px', borderRadius:5, border:'none', cursor:'pointer', background:'transparent', color:'var(--textMuted)', border:'1px solid var(--border)' }}>✕</button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ fontSize:11, color:'var(--textMuted)', marginTop:12, textAlign:'center' }}>
+        Birden fazla sayfa seçmek için üzerine tıklayın.
+      </p>
+    </Modal>
+  );
+}
+
+// ── Juz Card ──────────────────────────────────────────────────────────────────
+function JuzCard({ juz, pageList, onOpenPages, typeCfg }) {
+  typeCfg = typeCfg || TYPE_CONFIG.quran;
+  const pages = useMemo(()=>{ const ps=[]; for(let p=juz.start;p<=juz.end;p++) ps.push(p); return ps; },[juz]);
+  const pageDone = pages.filter(p=>pageList[p]?.completedAt).length;
+  const pageClaimed = pages.filter(p=>pageList[p]?.claimedBy&&!pageList[p]?.completedAt).length;
+  const pageFree = pages.length - pageDone - pageClaimed;
+  const pagePct = Math.round((pageDone/pages.length)*100);
+  const state = pageDone===pages.length?'done':(pageDone>0||pageClaimed>0)?'partial':'free';
+  const bgMap = { free:'var(--cardFree)', partial:'var(--cardPartial)', done:'var(--cardDone)' };
+  return (
+    <div className="fade-in" style={{ background:bgMap[state], border:'1.5px solid var(--border)', borderRadius:14, padding:'14px 11px', display:'flex', flexDirection:'column', gap:5, cursor:'pointer', transition:'transform 0.18s, box-shadow 0.18s', boxShadow:'var(--shadow)', position:'relative', overflow:'hidden', animationDelay:`${(juz.n-1)*0.016}s` }}
+      onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='var(--shadowHover)';}}
+      onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='var(--shadow)';}}
+      onClick={()=>onOpenPages(juz)}
+    >
+      {state==='done'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--primary)', color:'#fff', fontSize:9, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>✓ Tamam</div>}
+      {state==='partial'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--gold)', color:'#fff', fontSize:9, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>Devam</div>}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <span style={{ fontSize:10, fontWeight:800, color:'var(--textMuted)', letterSpacing:'0.07em' }}>{juz.n}. {typeCfg.sectionLabel}</span>
+        <span style={{ fontSize:9, color:'var(--textMuted)' }}>{juz.start}–{juz.end}</span>
+      </div>
+      <div style={{ marginTop:4 }}>
+        <div style={{ height:3, borderRadius:3, background:'var(--border)', overflow:'hidden', marginBottom:4 }}>
+          <div style={{ height:'100%', width:`${pagePct}%`, background:'var(--gold)', transition:'width 0.5s ease', borderRadius:3 }} />
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:9, color:'var(--textMuted)' }}>
+          <span style={{ color:'var(--primary)', fontWeight:700 }}>✓ {pageDone}</span>
+          <span>📖 {pageClaimed}</span>
+          <span>○ {pageFree}</span>
+        </div>
+        <div style={{ textAlign:'center', fontSize:10, color:'var(--gold)', fontWeight:700, marginTop:4 }}>
+          {state==='done'?'🌙 Tamamlandı':`→ Aç`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Create Modal ──────────────────────────────────────────────────────────────
+function CreateModal({ onCreate, onClose }) {
+  const [title, setTitle] = useState('');
+  const [organizer, setOrganizer] = useState('');
+  const [occasion, setOccasion] = useState('');
+  const [deadline, setDeadline] = useState('');
+  const [type, setType] = useState('quran');
+  const [saving, setSaving] = useState(false);
+
+  const handle = async () => {
+    if (!title.trim()||!organizer.trim()) return;
+    setSaving(true);
+    await onCreate({ title:title.trim(), organizer:organizer.trim(), occasion:occasion.trim(), deadline, type, createdAt:Date.now() });
+    setSaving(false);
+  };
+
+  return (
+    <Modal title="Yeni Hatim Oluştur" subtitle="Create a New Hatim" onClose={onClose}>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        <div style={{ display:'flex', gap:10 }}>
+          {Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
+            <div key={key} onClick={()=>setType(key)} style={{ flex:1, padding:'12px', borderRadius:12, border:`2px solid ${type===key?'var(--gold)':'var(--border)'}`, cursor:'pointer', background:type===key?'var(--goldLight)':'var(--surfaceAlt)', transition:'all 0.18s', textAlign:'center' }}>
+              <div style={{ fontSize:22, marginBottom:4 }}>{cfg.emoji}</div>
+              <div style={{ fontWeight:700, fontSize:13, color:'var(--text)' }}>{cfg.label}</div>
+            </div>
+          ))}
+        </div>
+        <Inp label="Hatim Başlığı / Title" value={title} onChange={setTitle} placeholder={type==='cevsen'?'Ramazan Cevşeni 2025...':'Ramazan Hatmi 2025...'} required />
+        <Inp label="Organizatör Adı / Your Name" value={organizer} onChange={setOrganizer} placeholder="Ahmed..." required />
+        <Inp label="Vesile / Occasion (opsiyonel)" value={occasion} onChange={setOccasion} placeholder="Dedeme Ruh-u Şerifine..." />
+        <Inp label="Son Tarih / Deadline (opsiyonel)" value={deadline} onChange={setDeadline} type="date" />
+        <Btn onClick={handle} disabled={!title.trim()||!organizer.trim()||saving}>{saving?'Oluşturuluyor...':'✦ Hatim Oluştur'}</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+// ── Hatim Page ────────────────────────────────────────────────────────────────
+function HatimPage({ hatimId, addMyHatim, goBack, currentUser, setCurrentUser }) {
+  const { hatim, loading } = useHatim(hatimId);
+  const [openJuz, setOpenJuz] = useState(null);
+  const [showShare, setShowShare] = useState(false);
+
+  // Add to my list on first visit
+  useEffect(() => { if (hatim) addMyHatim(hatimId); }, [hatim]);
+
+  if (loading) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}><Spinner /></div>;
+  if (!hatim) return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:16 }}>
+      <div style={{ fontFamily:'Amiri,serif', fontSize:44, color:'var(--gold)', opacity:0.5 }}>☽</div>
+      <p style={{ color:'var(--textMuted)' }}>Hatim bulunamadı.</p>
+      <Btn variant="ghost" small onClick={goBack}>← Geri</Btn>
+    </div>
+  );
+
+  const pageList = hatim.pageList || {};
+  const typeCfg = TYPE_CONFIG[hatim.type] || TYPE_CONFIG.quran;
+  const doneCount = Object.values(pageList).filter(e=>e.completedAt).length;
+  const claimedCount = Object.values(pageList).filter(e=>e.claimedBy&&!e.completedAt).length;
+  const pct = Math.round((doneCount/typeCfg.totalItems)*100);
+  const daysLeft = hatim.deadline ? Math.ceil((new Date(hatim.deadline)-new Date())/86400000) : null;
+
+  const db = getDb();
+
+  const claimPages = (pageNums, name) => {
+    setCurrentUser(name);
+    const updates = {};
+    pageNums.forEach(p => { if (!pageList[p]) updates[`hatims/${hatimId}/pageList/${p}`] = { claimedBy:name, claimedAt:Date.now() }; });
+    db.ref().update(updates);
+    setOpenJuz(null);
+  };
+
+  const completePages = (pageNums) => {
+    const updates = {};
+    pageNums.forEach(p => { if (pageList[p]) updates[`hatims/${hatimId}/pageList/${p}/completedAt`] = Date.now(); });
+    db.ref().update(updates);
+  };
+
+  const unclaimPage = (p) => { db.ref(`hatims/${hatimId}/pageList/${p}`).remove(); };
+
+  return (
+    <div style={{ maxWidth:1040, margin:'0 auto', padding:'24px 20px 60px' }}>
+      <div className="fade-in" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+        <button onClick={goBack} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--textMuted)', fontSize:14, fontFamily:'Nunito', fontWeight:600 }}>← Dashboard</button>
+        <Btn small variant="gold" onClick={()=>setShowShare(true)}>📤 Paylaş</Btn>
+      </div>
+
+      {/* Info card */}
+      <div className="fade-in" style={{ background:'var(--surface)', borderRadius:20, padding:26, marginBottom:24, boxShadow:'var(--shadow)' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:20, flexWrap:'wrap' }}>
+          <div style={{ flex:1, minWidth:200 }}>
+            <div style={{ fontSize:10, fontWeight:800, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:3 }}>HATİM</div>
+            <h1 style={{ fontFamily:'Amiri,serif', fontSize:28, color:'var(--text)', lineHeight:1.2, marginBottom:6 }}>{hatim.title}</h1>
+            {hatim.occasion && <div style={{ fontSize:13, color:'var(--textMuted)', fontStyle:'italic', marginBottom:4 }}>✦ {hatim.occasion}</div>}
+            <div style={{ fontSize:12, color:'var(--textMuted)' }}>Organizatör: <strong style={{ color:'var(--text)' }}>{hatim.organizer}</strong> · {formatDate(hatim.createdAt)}</div>
+            {daysLeft!==null && <div style={{ marginTop:8, fontSize:12, fontWeight:700, color:daysLeft<3?'oklch(55% 0.14 25)':'var(--primary)' }}>{daysLeft>0?`⏳ ${daysLeft} gün kaldı`:daysLeft===0?'⚠️ Bugün son gün!':'⚠️ Süre doldu'}</div>}
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+            <div style={{ position:'relative', width:82, height:82, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <ProgressRing pct={pct} size={82} stroke={7} />
+              <div style={{ position:'absolute', textAlign:'center' }}>
+                <div style={{ fontSize:18, fontWeight:800, color:'var(--text)', lineHeight:1 }}>{pct}%</div>
+                <div style={{ fontSize:9, color:'var(--textMuted)', fontWeight:700 }}>Tamam</div>
+              </div>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, textAlign:'center' }}>
+              {[['✓',doneCount,'var(--primary)'],['📖',claimedCount,'var(--gold)'],['○',typeCfg.totalItems-doneCount-claimedCount,'var(--textMuted)']].map(([l,v,c])=>(
+                <div key={l}><div style={{ fontSize:16, fontWeight:800, color:c }}>{v}</div><div style={{ fontSize:9, color:'var(--textMuted)' }}>{l}</div></div>
+              ))}
+            </div>
+            <div style={{ fontSize:10, color:'var(--textMuted)' }}>{doneCount}/{typeCfg.totalItems} {typeCfg.itemLabel}</div>
+          </div>
+        </div>
+        {doneCount===typeCfg.totalItems && (
+          <div style={{ marginTop:14, background:'var(--goldLight)', border:'1.5px solid var(--gold)', borderRadius:12, padding:'12px 20px', textAlign:'center', fontFamily:'Amiri,serif', fontSize:20, color:'var(--primary)' }}>
+            🌙 Mâşaallah! Hatim tamamlandı. الحمد لله 🌙
+          </div>
+        )}
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(138px, 1fr))', gap:10 }}>
+        {typeCfg.sections.map(j => <JuzCard key={j.n} juz={j} pageList={pageList} onOpenPages={setOpenJuz} typeCfg={typeCfg} />)}
+      </div>
+
+      {openJuz && <JuzPageModal juz={openJuz} pageList={pageList} currentUser={currentUser}
+        onClaimPages={claimPages} onCompletePages={completePages} onUnclaimPage={unclaimPage}
+        onClose={()=>setOpenJuz(null)} typeCfg={typeCfg} />}
+      {showShare && <ShareModal hatimId={hatimId} onClose={()=>setShowShare(false)} />}
+    </div>
+  );
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function DashboardHatimCard({ id, onOpen, onRemove }) {
+  const { hatim, loading } = useHatim(id);
+  const [confirmDel, setConfirmDel] = useState(false);
+
+  if (loading) return <div style={{ background:'var(--surface)', borderRadius:16, padding:'18px 22px', boxShadow:'var(--shadow)', border:'1.5px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', minHeight:80 }}><Spinner /></div>;
+  if (!hatim) return null;
+
+  const pageList = hatim.pageList || {};
+  const typeCfg = TYPE_CONFIG[hatim.type] || TYPE_CONFIG.quran;
+  const done = Object.values(pageList).filter(e=>e.completedAt).length;
+  const claimed = Object.values(pageList).filter(e=>e.claimedBy&&!e.completedAt).length;
+  const pct = Math.round((done/typeCfg.totalItems)*100);
+
+  const handleDelete = () => {
+    getDb().ref(`hatims/${id}`).remove();
+    onRemove(id);
+  };
+
+  return (
+    <>
+      <div className="fade-in" style={{ background:'var(--surface)', borderRadius:16, padding:'18px 22px', cursor:'pointer', boxShadow:'var(--shadow)', border:'1.5px solid var(--border)', transition:'transform 0.18s, box-shadow 0.18s', position:'relative' }}
+        onClick={()=>onOpen(id)}
+        onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='var(--shadowHover)';}}
+        onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='var(--shadow)';}}
+      >
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:16 }}>
+          <div style={{ flex:1 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
+              <div style={{ fontFamily:'Amiri,serif', fontSize:19, color:'var(--text)' }}>{hatim.title}</div>
+              <span style={{ fontSize:10, padding:'2px 8px', borderRadius:20, background:'var(--surfaceAlt)', color:'var(--textMuted)', fontWeight:700 }}>{typeCfg.emoji}</span>
+            </div>
+            {hatim.occasion && <div style={{ fontSize:11, color:'var(--textMuted)', fontStyle:'italic', marginBottom:3 }}>{hatim.occasion}</div>}
+            <div style={{ fontSize:10, color:'var(--textMuted)' }}>{formatDate(hatim.createdAt)} · {hatim.organizer}</div>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+            <div style={{ position:'relative', width:50, height:50, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <ProgressRing pct={pct} size={50} stroke={5} />
+              <div style={{ position:'absolute', fontSize:11, fontWeight:800, color:'var(--text)' }}>{pct}%</div>
+            </div>
+            <div style={{ fontSize:9, color:'var(--textMuted)' }}>{done}/{typeCfg.totalItems}</div>
+            <button onClick={e=>{e.stopPropagation();setConfirmDel(true);}} style={{ background:'none', border:'none', cursor:'pointer', fontSize:13, color:'var(--textMuted)', padding:'2px 4px', opacity:0.45, transition:'opacity 0.15s', marginTop:2 }}
+              onMouseEnter={e=>e.currentTarget.style.opacity='1'} onMouseLeave={e=>e.currentTarget.style.opacity='0.45'}>🗑</button>
+          </div>
+        </div>
+        <div style={{ marginTop:8, height:3, borderRadius:3, background:'var(--surfaceAlt)', overflow:'hidden' }}>
+          <div style={{ height:'100%', width:`${pct}%`, background:'var(--gold)', borderRadius:3, transition:'width 0.6s ease' }} />
+        </div>
+        <div style={{ display:'flex', gap:14, marginTop:6, fontSize:10, color:'var(--textMuted)' }}>
+          <span style={{ color:'var(--primary)', fontWeight:700 }}>✓ {done} tamamlandı</span>
+          <span>📖 {claimed} okunuyor</span>
+          <span>○ {typeCfg.totalItems-done-claimed} boş</span>
+        </div>
+      </div>
+      {confirmDel && (
+        <Modal title="Hatimi Sil" subtitle="Bu işlem geri alınamaz." onClose={()=>setConfirmDel(false)}>
+          <p style={{ fontSize:14, color:'var(--textMuted)', marginBottom:20, lineHeight:1.6 }}>
+            <strong style={{ color:'var(--text)' }}>"{hatim.title}"</strong> hatimini kalıcı olarak silmek istiyor musunuz?
+          </p>
+          <div style={{ display:'flex', gap:10 }}>
+            <Btn variant="danger" onClick={handleDelete} style={{ flex:1 }}>Evet, Sil</Btn>
+            <Btn variant="ghost" onClick={()=>setConfirmDel(false)} style={{ flex:1 }}>İptal</Btn>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+function Dashboard({ myHatimIds, addMyHatim, removeMyHatim, goToHatim }) {
+  const [showCreate, setShowCreate] = useState(false);
+
+  const onCreate = async (data) => {
+    const ref = getDb().ref('hatims').push();
+    await ref.set({ ...data, pageList:{} });
+    addMyHatim(ref.key);
+    setShowCreate(false);
+    goToHatim(ref.key);
+  };
+
+  return (
+    <div style={{ maxWidth:680, margin:'0 auto', padding:'40px 20px 80px' }}>
+      <div className="fade-in" style={{ textAlign:'center', marginBottom:36 }}>
+        <h1 style={{ fontFamily:'Amiri,serif', fontSize:34, color:'var(--text)', marginBottom:8 }}>Hatim Paylaşım</h1>
+        <p style={{ color:'var(--textMuted)', fontSize:13, lineHeight:1.7, maxWidth:380, margin:'0 auto' }}>
+          Birlikte Kuran okumak için hatim oluştur ve paylaş.<br/>
+          <em style={{ fontSize:12 }}>Create and share a hatim for collective Quran reading.</em>
+        </p>
+        <GoldDivider />
+        <Btn onClick={()=>setShowCreate(true)} style={{ marginTop:6 }}>✦ Yeni Hatim Oluştur</Btn>
+      </div>
+
+      {myHatimIds.length === 0 ? (
+        <div style={{ textAlign:'center', padding:'50px 20px', color:'var(--textMuted)' }}>
+          <div style={{ fontFamily:'Amiri,serif', fontSize:52, color:'var(--gold)', opacity:0.4, marginBottom:10 }}>☽</div>
+          <p style={{ fontSize:15 }}>Henüz hatim yok. Yukarıdan oluşturun.</p>
+          <p style={{ fontSize:12, marginTop:6 }}>Veya birisinin paylaştığı linki açın.</p>
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <h2 style={{ fontSize:12, fontWeight:800, letterSpacing:'0.08em', color:'var(--textMuted)', textTransform:'uppercase' }}>Hatimlerim</h2>
+          {myHatimIds.map(id => (
+            <DashboardHatimCard key={id} id={id} onOpen={goToHatim} onRemove={removeMyHatim} />
+          ))}
+        </div>
+      )}
+      {showCreate && <CreateModal onCreate={onCreate} onClose={()=>setShowCreate(false)} />}
+    </div>
+  );
+}
+
+// ── App ────────────────────────────────────────────────────────────────────────
+function App() {
+  const [configured, setConfigured] = useState(false);
+  const [currentUser, setCurrentUser] = useState(() => ls('sha_user', ''));
+  const [route, setRoute] = useState(getHashRoute);
+  const { ids: myHatimIds, add: addMyHatim, remove: removeMyHatim } = useMyHatimIds();
+
+  // Persist current user
+  useEffect(() => { lsSet('sha_user', currentUser); }, [currentUser]);
+
+  // Theme
+  useEffect(() => {
+    const t = THEMES.zumrut;
+    const root = document.documentElement;
+    Object.entries(t).forEach(([k,v]) => typeof v==='string' && root.style.setProperty('--'+k, v));
+    document.body.style.background = t.bg;
+    document.body.style.color = t.text;
+  }, []);
+
+  // Hash routing
+  useEffect(() => {
+    const onChange = () => setRoute(getHashRoute());
+    window.addEventListener('hashchange', onChange);
+    return () => window.removeEventListener('hashchange', onChange);
+  }, []);
+
+  // Try firebase-config.js first, then fall back to localStorage
+  useEffect(() => {
+    const cfg = window.FIREBASE_CONFIG || ls('sha_firebase_cfg', null);
+    if (cfg && cfg.databaseURL) {
+      const ok = initFirebase(cfg);
+      if (ok) setConfigured(true);
+    }
+  }, []);
+
+  const goToHatim = (id) => { window.location.hash = `hatim/${id}`; };
+  const goBack = () => { window.location.hash = ''; };
+
+  if (!configured) {
+    return (
+      <>
+        <SetupScreen onConfigured={()=>setConfigured(true)} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      {route.page==='dashboard'
+        ? <Dashboard myHatimIds={myHatimIds} addMyHatim={addMyHatim} removeMyHatim={removeMyHatim} goToHatim={goToHatim} />
+        : <HatimPage hatimId={route.id} addMyHatim={addMyHatim} goBack={goBack} currentUser={currentUser} setCurrentUser={setCurrentUser} />
+      }
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
+  }
+</script>
+</body>
+</html>
