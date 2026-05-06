@@ -1,6 +1,7 @@
-const CACHE = 'hatim-v3';
+const CACHE = 'hatim-v4';
 const ASSETS = [
-  './share-a-hatim-v2.html',
+  './',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -9,7 +10,6 @@ const ASSETS = [
   'https://unpkg.com/react@18.3.1/umd/react.development.js',
   'https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js',
   'https://unpkg.com/@babel/standalone@7.29.0/babel.min.js',
-  './tweaks-panel.jsx',
 ];
 
 self.addEventListener('install', e => {
@@ -29,6 +29,11 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Never cache Firebase realtime database calls — they must be live.
+  const url = e.request.url;
+  if (url.includes('firebaseio.com') || url.includes('firebase') || url.includes('googleapis.com/identitytoolkit')) {
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
@@ -38,7 +43,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      }).catch(() => caches.match('./share-a-hatim-v2.html'));
+      }).catch(() => caches.match('./index.html'));
     })
   );
 });

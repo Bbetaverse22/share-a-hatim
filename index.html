@@ -260,74 +260,6 @@ function ProgressRing({ pct, size=72, stroke=6 }) {
 
 function Spinner() { return <div className="spinner"></div>; }
 
-// ── Firebase Setup Screen ─────────────────────────────────────────────────────
-function SetupScreen({ onConfigured }) {
-  const [json, setJson] = useState('');
-  const [error, setError] = useState('');
-  const [testing, setTesting] = useState(false);
-
-  const handleSave = async () => {
-    setError(''); setTesting(true);
-    try {
-      const cfg = JSON.parse(json.trim());
-      if (!cfg.databaseURL) throw new Error('databaseURL eksik — Firebase konsolundan kopyalayın.');
-      const ok = initFirebase(cfg);
-      if (!ok) throw new Error('Firebase başlatılamadı. Config\'i kontrol edin.');
-      // Test connection
-      await _db.ref('.info/connected').once('value');
-      lsSet('sha_firebase_cfg', cfg);
-      onConfigured();
-    } catch(e) {
-      setError(e.message || 'Hata oluştu.');
-    }
-    setTesting(false);
-  };
-
-  return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
-      <div className="scale-in" style={{ background:'var(--surface)', borderRadius:24, padding:36, maxWidth:520, width:'100%', boxShadow:'var(--shadowHover)' }}>
-        <div style={{ textAlign:'center', marginBottom:24 }}>
-          <div style={{ fontFamily:'Amiri,serif', fontSize:36, color:'var(--gold)', marginBottom:8 }}>☽</div>
-          <h1 style={{ fontFamily:'Amiri,serif', fontSize:28, color:'var(--text)', marginBottom:6 }}>Hatim Paylaşım</h1>
-          <p style={{ fontSize:13, color:'var(--textMuted)', lineHeight:1.7 }}>
-            Uygulamayı başlatmak için ücretsiz bir Firebase projesi gerekiyor.<br/>
-            Bir kez yapılandırın — sonra paylaşın.
-          </p>
-        </div>
-        <GoldDivider />
-
-        {/* Step by step */}
-        <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:20 }}>
-          {[
-            ['1', 'console.firebase.google.com adresine gidin, "Proje oluştur" tıklayın.'],
-            ['2', 'Sol menüden Realtime Database → "Oluştur" → Test modunda başlat.'],
-            ['3', 'Proje Ayarları (⚙️) → "Uygulamalarınız" → Web uygulaması ekle → SDK kurulum kodunu kopyalayın.'],
-            ['4', 'Aşağıya sadece firebaseConfig = { ... } içindeki JSON\'u yapıştırın.'],
-          ].map(([n, t]) => (
-            <div key={n} style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
-              <div style={{ minWidth:24, height:24, borderRadius:'50%', background:'var(--gold)', color:'#fff', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{n}</div>
-              <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.5, paddingTop:2 }}>{t}</div>
-            </div>
-          ))}
-        </div>
-
-        <Textarea label="Firebase Config (JSON)" value={json} onChange={setJson} placeholder={'{\n  "apiKey": "...",\n  "authDomain": "...",\n  "databaseURL": "https://your-project-default-rtdb.firebaseio.com",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'} rows={8} />
-
-        {error && <div style={{ marginTop:10, padding:'10px 14px', borderRadius:10, background:'oklch(95% 0.04 25)', color:'oklch(40% 0.15 25)', fontSize:13, fontWeight:600 }}>⚠️ {error}</div>}
-
-        <Btn onClick={handleSave} disabled={!json.trim() || testing} style={{ width:'100%', marginTop:16 }}>
-          {testing ? 'Bağlanıyor...' : '✦ Kaydet ve Başlat'}
-        </Btn>
-
-        <p style={{ fontSize:11, color:'var(--textMuted)', textAlign:'center', marginTop:14, lineHeight:1.6 }}>
-          Config bu cihaza kaydedilir. Başka cihazlarda da aynı adımları tekrarlayın.<br/>
-          Firebase ücretsiz planı bu uygulama için fazlasıyla yeterlidir.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ── Share Modal ───────────────────────────────────────────────────────────────
 function ShareModal({ hatimId, onClose }) {
   const url = `${window.location.origin}${window.location.pathname}#hatim/${hatimId}`;
@@ -740,9 +672,9 @@ function App() {
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
 
-  // Try firebase-config.js first, then fall back to localStorage
+  // Initialize Firebase from baked-in config
   useEffect(() => {
-    const cfg = window.FIREBASE_CONFIG || ls('sha_firebase_cfg', null);
+    const cfg = window.FIREBASE_CONFIG;
     if (cfg && cfg.databaseURL) {
       const ok = initFirebase(cfg);
       if (ok) setConfigured(true);
@@ -754,9 +686,11 @@ function App() {
 
   if (!configured) {
     return (
-      <>
-        <SetupScreen onConfigured={()=>setConfigured(true)} />
-      </>
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:14 }}>
+        <div style={{ fontFamily:'Amiri,serif', fontSize:44, color:'var(--gold)' }}>☽</div>
+        <Spinner />
+        <p style={{ color:'var(--textMuted)', fontSize:13 }}>Bağlanıyor…</p>
+      </div>
     );
   }
 
