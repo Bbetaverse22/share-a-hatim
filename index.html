@@ -669,7 +669,7 @@ function DashboardHatimCard({ id, onOpen, onRemove }) {
         <div style={{ marginTop:8, height:3, borderRadius:3, background:'var(--surfaceAlt)', overflow:'hidden' }}>
           <div style={{ height:'100%', width:`${pct}%`, background:'var(--gold)', borderRadius:3, transition:'width 0.6s ease' }} />
         </div>
-        <div style={{ display:'flex', gap:14, marginTop:6, fontSize:10, color:'var(--textMuted)' }}>
+        <div style={{ display:'flex', gap:14, marginTop:6, fontSize:10, color:'var(--textMuted)', alignItems:'center' }}>
           <span style={{ color:'var(--primary)', fontWeight:700 }}>✓ {done} tamamlandı</span>
           <span>📖 {claimed} okunuyor</span>
           <span>○ {typeCfg.totalItems-done-claimed} boş</span>
