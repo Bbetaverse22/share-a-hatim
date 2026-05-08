@@ -8,8 +8,8 @@
     },
     "hatimByToken": {
       "$token": {
-        ".read": "$token.matches(/^[0-9a-f]{64}$/)",
-        ".write": "$token.matches(/^[0-9a-f]{64}$/)",
+        ".read": "$token.matches(/^[0-9a-zA-Z]{12}$/)",
+        ".write": "$token.matches(/^[0-9a-zA-Z]{12}$/)",
         ".validate": "!newData.exists() || (newData.hasChildren(['title', 'organizer', 'createdAt', 'type']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 300 && newData.child('organizer').isString() && newData.child('organizer').val().length > 0 && newData.child('organizer').val().length <= 200 && newData.child('createdAt').isNumber() && newData.child('type').val().matches(/^(quran|cevsen)$/) && (!newData.child('occasion').exists() || newData.child('occasion').isString()) && (!newData.child('deadline').exists() || newData.child('deadline').isString()))",
         "pageList": {
           "$page": {

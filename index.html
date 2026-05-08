@@ -162,9 +162,10 @@ function ls(key, def) { try { const v = localStorage.getItem(key); return v ? JS
 function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 /** 32 bytes hex — must match `database.rules.json` token pattern. */
 function generateHatimToken() {
-  const buf = new Uint8Array(32);
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const buf = new Uint8Array(12);
   crypto.getRandomValues(buf);
-  return Array.from(buf, b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(buf, b => chars[b % 62]).join('');
 }
 function formatDate(ts) { if (!ts) return ''; return new Date(ts).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' }); }
 function getHashRoute() { const h = window.location.hash; if (h.startsWith('#hatim/')) return { page:'hatim', id:h.slice(7) }; return { page:'dashboard' }; }
