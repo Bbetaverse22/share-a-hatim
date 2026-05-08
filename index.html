@@ -306,7 +306,7 @@ function ShareModal({ hatimToken, onClose }) {
 // ── Page Modal ────────────────────────────────────────────────────────────────
 function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePages, onUnclaimPage, onClose, typeCfg }) {
   typeCfg = typeCfg || TYPE_CONFIG.quran;
-  const [nameInput, setNameInput] = useState(currentUser || '');
+  const [nameInput, setNameInput] = useState('');
   const [selected, setSelected] = useState([]);
 
   const pages = useMemo(() => { const ps = []; for(let p=juz.start;p<=juz.end;p++) ps.push(p); return ps; }, [juz]);
@@ -332,7 +332,7 @@ function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePage
   };
 
   return (
-    <Modal title={`${juz.n}. Cüz`} subtitle={`Sayfa ${juz.start}–${juz.end}`} onClose={onClose} wide>
+    <Modal title={`${juz.n}. ${typeCfg.sectionLabel.charAt(0) + typeCfg.sectionLabel.slice(1).toLowerCase()}`} subtitle={`${typeCfg.itemLabel.charAt(0).toUpperCase() + typeCfg.itemLabel.slice(1)} ${juz.start}–${juz.end}`} onClose={onClose} wide>
       <div style={{ display:'flex', gap:12, marginBottom:14 }}>
         {[['Tamam',done,'var(--primary)'],['Okunuyor',claimed,'var(--gold)'],['Boş',free,'var(--textMuted)']].map(([l,v,c])=>(
           <div key={l} style={{ flex:1, background:'var(--surfaceAlt)', borderRadius:10, padding:'10px 0', textAlign:'center' }}>
