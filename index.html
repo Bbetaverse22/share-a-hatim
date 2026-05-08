@@ -366,7 +366,7 @@ function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePage
               <div style={{ fontSize:15, fontWeight:800, color:isSel?'#fff':'var(--text)', lineHeight:1 }}>{p}</div>
               <div style={{ fontSize:9, color:isSel?'rgba(255,255,255,0.7)':'var(--textMuted)', marginTop:1 }}>{itemLabel}</div>
               {st==='claimed' && <div style={{ fontSize:9, color:'var(--primary)', fontWeight:700, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.claimedBy}</div>}
-              {st==='done' && <div style={{ fontSize:9, color:'var(--primary)', fontWeight:800, marginTop:2 }}>✓</div>}
+              {st==='done' && <div style={{ fontSize:9, color:'var(--primary)', fontWeight:800, marginTop:2 }}>✓ {e.claimedBy}</div>}
               <a href={getItemLink(p)} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
                 style={{ display:'block', fontSize:9, color:isSel?'rgba(255,255,255,0.9)':'var(--gold)', fontWeight:700, marginTop:3, textDecoration:'none' }}>{linkLabel}</a>
               {st==='claimed' && (
