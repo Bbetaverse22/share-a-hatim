@@ -1,6 +1,16 @@
 # Share a Hatim 🌙
 
-A collaborative Quran & Cevşen hatim coordination app. Anyone with the link can claim pages and track group progress in real time.
+A collaborative Quran & Cevşen hatim coordination app. Each hatim is stored under a **secret token** in Firebase; only people who receive the link can open that hatim (invite-only by capability). Your **dashboard list is per-device** (localStorage), not a global directory.
+
+### Firebase Realtime Database rules
+
+This repo includes [`database.rules.json`](database.rules.json) and [`firebase.json`](firebase.json). Apply rules in the [Firebase Console](https://console.firebase.google.com/) → your project → **Realtime Database** → **Rules** (paste / sync), or from this directory run:
+
+```bash
+firebase deploy --only database
+```
+
+**Important:** After locking rules, old data under `hatims/{pushId}` is no longer readable unless you migrate it to `hatimByToken/{64-char-hex}` manually or with a one-off script using the Admin SDK.
 
 ## Stack
 

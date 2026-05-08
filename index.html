@@ -160,29 +160,50 @@ function initFirebase(cfg) {
 // ── Local utils ───────────────────────────────────────────────────────────────
 function ls(key, def) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch { return def; } }
 function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+/** 32 bytes hex — must match `database.rules.json` token pattern. */
+function generateHatimToken() {
+  const buf = new Uint8Array(32);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, b => b.toString(16).padStart(2, '0')).join('');
+}
 function formatDate(ts) { if (!ts) return ''; return new Date(ts).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' }); }
 function getHashRoute() { const h = window.location.hash; if (h.startsWith('#hatim/')) return { page:'hatim', id:h.slice(7) }; return { page:'dashboard' }; }
 
 // ── Firebase hooks ────────────────────────────────────────────────────────────
-function useHatim(id) {
+function useHatim(token) {
   const [hatim, setHatim] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    if (!id || !_db) { setLoading(false); return; }
-    const ref = _db.ref(`hatims/${id}`);
+    if (!token || !_db) { setLoading(false); return; }
+    const ref = _db.ref(`hatimByToken/${token}`);
     const unsub = ref.on('value', snap => { setHatim(snap.val()); setLoading(false); });
     return () => ref.off('value', unsub);
-  }, [id]);
+  }, [token]);
   return { hatim, loading };
 }
 
 function useMyHatimIds() {
-  const [ids, setIds] = useState(() => ls('sha_my_hatims', []));
-  const add = useCallback(id => {
-    setIds(prev => { const next = prev.includes(id) ? prev : [id, ...prev]; lsSet('sha_my_hatims', next); return next; });
+  const [ids, setIds] = useState(() => {
+    const stored = ls('sha_my_hatim_tokens', null);
+    if (stored !== null) return stored;
+    const legacy = ls('sha_my_hatims', []);
+    const migrated = legacy.filter(t => /^[0-9a-f]{64}$/.test(String(t)));
+    if (legacy.length) lsSet('sha_my_hatim_tokens', migrated);
+    return migrated;
+  });
+  const add = useCallback(token => {
+    setIds(prev => {
+      const next = prev.includes(token) ? prev : [token, ...prev];
+      lsSet('sha_my_hatim_tokens', next);
+      return next;
+    });
   }, []);
-  const remove = useCallback(id => {
-    setIds(prev => { const next = prev.filter(x => x !== id); lsSet('sha_my_hatims', next); return next; });
+  const remove = useCallback(token => {
+    setIds(prev => {
+      const next = prev.filter(x => x !== token);
+      lsSet('sha_my_hatim_tokens', next);
+      return next;
+    });
   }, []);
   return { ids, add, remove };
 }
@@ -261,12 +282,12 @@ function ProgressRing({ pct, size=72, stroke=6 }) {
 function Spinner() { return <div className="spinner"></div>; }
 
 // ── Share Modal ───────────────────────────────────────────────────────────────
-function ShareModal({ hatimId, onClose }) {
-  const url = `${window.location.origin}${window.location.pathname}#hatim/${hatimId}`;
+function ShareModal({ hatimToken, onClose }) {
+  const url = `${window.location.origin}${window.location.pathname}#hatim/${hatimToken}`;
   const [copied, setCopied] = useState(false);
   const copy = () => { navigator.clipboard.writeText(url).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2200); }); };
   return (
-    <Modal title="Hatimi Paylaş" subtitle="Bu linki paylaşan herkes cüz üstlenebilir" onClose={onClose}>
+    <Modal title="Hatimi Paylaş" subtitle="Sadece bu gizli bağlantıya sahip olanlar hatimi görebilir ve cüz üstlenebilir" onClose={onClose}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <div style={{ background:'var(--surfaceAlt)', borderRadius:10, padding:'12px 16px', fontSize:12, wordBreak:'break-all', color:'var(--text)', fontFamily:'monospace' }}>{url}</div>
         <Btn onClick={copy} variant={copied?'ghost':'gold'}>{copied?'✓ Kopyalandı!':'📋 Linki Kopyala'}</Btn>
@@ -275,7 +296,7 @@ function ShareModal({ hatimId, onClose }) {
             WhatsApp
           </a>
         </div>
-        <p style={{ fontSize:11, color:'var(--textMuted)', textAlign:'center', lineHeight:1.6 }}>Linki açan herkes gerçek zamanlı güncellemeyi görecek.</p>
+        <p style={{ fontSize:11, color:'var(--textMuted)', textAlign:'center', lineHeight:1.6 }}>Bağlantıyı paylaştığınız kişiler gerçek zamanlı güncellemeyi görebilir; bağlantı olmadan erişim yoktur.</p>
       </div>
     </Modal>
   );
@@ -411,11 +432,19 @@ function CreateModal({ onCreate, onClose }) {
   const [deadline, setDeadline] = useState('');
   const [type, setType] = useState('quran');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handle = async () => {
     if (!title.trim()||!organizer.trim()) return;
+    setError('');
     setSaving(true);
-    await onCreate({ title:title.trim(), organizer:organizer.trim(), occasion:occasion.trim(), deadline, type, createdAt:Date.now() });
+    try {
+      await onCreate({ title:title.trim(), organizer:organizer.trim(), occasion:occasion.trim(), deadline, type, createdAt:Date.now() });
+    } catch (e) {
+      console.error(e);
+      const msg = (e && (e.message || e.code)) ? `${e.code ? e.code + ': ' : ''}${e.message || ''}` : 'Kayıt sırasında hata oluştu.';
+      setError(msg);
+    }
     setSaving(false);
   };
 
@@ -434,6 +463,11 @@ function CreateModal({ onCreate, onClose }) {
         <Inp label="Organizatör Adı / Your Name" value={organizer} onChange={setOrganizer} placeholder="Ahmed..." required />
         <Inp label="Vesile / Occasion (opsiyonel)" value={occasion} onChange={setOccasion} placeholder="Dedeme Ruh-u Şerifine..." />
         <Inp label="Son Tarih / Deadline (opsiyonel)" value={deadline} onChange={setDeadline} type="date" />
+        {error && (
+          <div style={{ padding:'10px 12px', borderRadius:10, background:'oklch(95% 0.04 25)', color:'oklch(40% 0.15 25)', fontSize:12, fontWeight:700, lineHeight:1.5 }}>
+            {error}
+          </div>
+        )}
         <Btn onClick={handle} disabled={!title.trim()||!organizer.trim()||saving}>{saving?'Oluşturuluyor...':'✦ Hatim Oluştur'}</Btn>
       </div>
     </Modal>
@@ -441,13 +475,13 @@ function CreateModal({ onCreate, onClose }) {
 }
 
 // ── Hatim Page ────────────────────────────────────────────────────────────────
-function HatimPage({ hatimId, addMyHatim, goBack, currentUser, setCurrentUser }) {
-  const { hatim, loading } = useHatim(hatimId);
+function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser }) {
+  const { hatim, loading } = useHatim(hatimToken);
   const [openJuz, setOpenJuz] = useState(null);
   const [showShare, setShowShare] = useState(false);
 
   // Add to my list on first visit
-  useEffect(() => { if (hatim) addMyHatim(hatimId); }, [hatim]);
+  useEffect(() => { if (hatim) addMyHatim(hatimToken); }, [hatim, hatimToken, addMyHatim]);
 
   if (loading) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}><Spinner /></div>;
   if (!hatim) return (
@@ -470,18 +504,18 @@ function HatimPage({ hatimId, addMyHatim, goBack, currentUser, setCurrentUser })
   const claimPages = (pageNums, name) => {
     setCurrentUser(name);
     const updates = {};
-    pageNums.forEach(p => { if (!pageList[p]) updates[`hatims/${hatimId}/pageList/${p}`] = { claimedBy:name, claimedAt:Date.now() }; });
+    pageNums.forEach(p => { if (!pageList[p]) updates[`hatimByToken/${hatimToken}/pageList/${p}`] = { claimedBy:name, claimedAt:Date.now() }; });
     db.ref().update(updates);
     setOpenJuz(null);
   };
 
   const completePages = (pageNums) => {
     const updates = {};
-    pageNums.forEach(p => { if (pageList[p]) updates[`hatims/${hatimId}/pageList/${p}/completedAt`] = Date.now(); });
+    pageNums.forEach(p => { if (pageList[p]) updates[`hatimByToken/${hatimToken}/pageList/${p}/completedAt`] = Date.now(); });
     db.ref().update(updates);
   };
 
-  const unclaimPage = (p) => { db.ref(`hatims/${hatimId}/pageList/${p}`).remove(); };
+  const unclaimPage = (p) => { db.ref(`hatimByToken/${hatimToken}/pageList/${p}`).remove(); };
 
   return (
     <div style={{ maxWidth:1040, margin:'0 auto', padding:'24px 20px 60px' }}>
@@ -530,7 +564,7 @@ function HatimPage({ hatimId, addMyHatim, goBack, currentUser, setCurrentUser })
       {openJuz && <JuzPageModal juz={openJuz} pageList={pageList} currentUser={currentUser}
         onClaimPages={claimPages} onCompletePages={completePages} onUnclaimPage={unclaimPage}
         onClose={()=>setOpenJuz(null)} typeCfg={typeCfg} />}
-      {showShare && <ShareModal hatimId={hatimId} onClose={()=>setShowShare(false)} />}
+      {showShare && <ShareModal hatimToken={hatimToken} onClose={()=>setShowShare(false)} />}
     </div>
   );
 }
@@ -550,7 +584,7 @@ function DashboardHatimCard({ id, onOpen, onRemove }) {
   const pct = Math.round((done/typeCfg.totalItems)*100);
 
   const handleDelete = () => {
-    getDb().ref(`hatims/${id}`).remove();
+    getDb().ref(`hatimByToken/${id}`).remove();
     onRemove(id);
   };
 
@@ -608,11 +642,12 @@ function Dashboard({ myHatimIds, addMyHatim, removeMyHatim, goToHatim }) {
   const [showCreate, setShowCreate] = useState(false);
 
   const onCreate = async (data) => {
-    const ref = getDb().ref('hatims').push();
+    const token = generateHatimToken();
+    const ref = getDb().ref(`hatimByToken/${token}`);
     await ref.set({ ...data, pageList:{} });
-    addMyHatim(ref.key);
+    addMyHatim(token);
     setShowCreate(false);
-    goToHatim(ref.key);
+    goToHatim(token);
   };
 
   return (
@@ -698,7 +733,7 @@ function App() {
     <>
       {route.page==='dashboard'
         ? <Dashboard myHatimIds={myHatimIds} addMyHatim={addMyHatim} removeMyHatim={removeMyHatim} goToHatim={goToHatim} />
-        : <HatimPage hatimId={route.id} addMyHatim={addMyHatim} goBack={goBack} currentUser={currentUser} setCurrentUser={setCurrentUser} />
+        : <HatimPage hatimToken={route.id} addMyHatim={addMyHatim} goBack={goBack} currentUser={currentUser} setCurrentUser={setCurrentUser} />
       }
     </>
   );

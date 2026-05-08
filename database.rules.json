@@ -1,0 +1,22 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "hatims": {
+      ".read": false,
+      ".write": false
+    },
+    "hatimByToken": {
+      "$token": {
+        ".read": "$token.matches(/^[0-9a-f]{64}$/)",
+        ".write": "$token.matches(/^[0-9a-f]{64}$/)",
+        ".validate": "!newData.exists() || (newData.hasChildren(['title', 'organizer', 'createdAt', 'type', 'pageList']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 300 && newData.child('organizer').isString() && newData.child('organizer').val().length > 0 && newData.child('organizer').val().length <= 200 && newData.child('createdAt').isNumber() && newData.child('type').val().matches(/^(quran|cevsen)$/) && newData.child('pageList').exists() && (!newData.child('occasion').exists() || newData.child('occasion').isString()) && (!newData.child('deadline').exists() || newData.child('deadline').isString()))",
+        "pageList": {
+          "$page": {
+            ".validate": "!newData.exists() || (newData.child('claimedBy').isString() && newData.child('claimedBy').val().length > 0 && newData.child('claimedBy').val().length <= 200 && newData.child('claimedAt').isNumber() && (!newData.child('completedAt').exists() || newData.child('completedAt').isNumber()))"
+          }
+        }
+      }
+    }
+  }
+}
