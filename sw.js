@@ -1,4 +1,4 @@
-const CACHE = 'hatim-v5';
+const CACHE = 'hatim-v6';
 const ASSETS = [
   './',
   './index.html',
