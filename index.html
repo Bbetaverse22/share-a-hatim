@@ -475,6 +475,60 @@ function CreateModal({ onCreate, onClose }) {
   );
 }
 
+// ── My Pages Panel ───────────────────────────────────────────────────────────
+function MyPagesPanel({ pageList, currentUser, typeCfg, onCompletePages }) {
+  if (!currentUser) return null;
+
+  const myPending = Object.entries(pageList)
+    .filter(([_, e]) => e.claimedBy === currentUser && !e.completedAt)
+    .map(([p]) => Number(p))
+    .sort((a, b) => a - b);
+
+  const myDoneCount = Object.entries(pageList)
+    .filter(([_, e]) => e.claimedBy === currentUser && e.completedAt)
+    .length;
+
+  if (myPending.length === 0 && myDoneCount === 0) return null;
+
+  const { getItemLink, itemLabel } = typeCfg;
+
+  return (
+    <div className="fade-in" style={{ background:'var(--surface)', borderRadius:20, padding:22, marginBottom:24, boxShadow:'var(--shadow)', border:'1.5px solid var(--gold)' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+        <div>
+          <div style={{ fontSize:10, fontWeight:800, letterSpacing:'0.08em', color:'var(--gold)', marginBottom:3 }}>BENİM SAYFALARIM / MY PAGES</div>
+          <div style={{ fontSize:13, color:'var(--textMuted)' }}>
+            {myPending.length > 0 && <span>{myPending.length} okunacak</span>}
+            {myPending.length > 0 && myDoneCount > 0 && <span> · </span>}
+            {myDoneCount > 0 && <span style={{ color:'var(--primary)', fontWeight:700 }}>✓ {myDoneCount} tamamlandı</span>}
+          </div>
+        </div>
+        {myPending.length > 0 && (
+          <Btn variant="primary" small onClick={() => onCompletePages(myPending)}>✓ Tümünü Tamamla</Btn>
+        )}
+      </div>
+      {myPending.length > 0 ? (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+          {myPending.map(p => (
+            <div key={p} style={{ display:'flex', alignItems:'center', gap:6, background:'var(--cardClaimed)', border:'1.5px solid var(--border)', borderRadius:10, padding:'7px 10px' }}>
+              <span style={{ fontSize:14, fontWeight:800, color:'var(--text)' }}>{p}</span>
+              <span style={{ fontSize:10, color:'var(--textMuted)' }}>{itemLabel}</span>
+              <a href={getItemLink(p)} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize:10, color:'var(--gold)', fontWeight:700, textDecoration:'none' }}>📖 Oku</a>
+              <button onClick={() => onCompletePages([p])}
+                style={{ fontSize:10, padding:'3px 8px', borderRadius:6, border:'none', cursor:'pointer', background:'var(--primary)', color:'#fff', fontWeight:700 }}>✓</button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ textAlign:'center', padding:'10px 0', color:'var(--primary)', fontFamily:'Amiri,serif', fontSize:17 }}>
+          🌙 Tüm sayfalarını tamamladın. الحمد لله
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Hatim Page ────────────────────────────────────────────────────────────────
 function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser }) {
   const { hatim, loading } = useHatim(hatimToken);
@@ -556,6 +610,8 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
           </div>
         )}
       </div>
+
+      <MyPagesPanel pageList={pageList} currentUser={currentUser} typeCfg={typeCfg} onCompletePages={completePages} />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(138px, 1fr))', gap:10 }}>
         {typeCfg.sections.map(j => <JuzCard key={j.n} juz={j} pageList={pageList} onOpenPages={setOpenJuz} typeCfg={typeCfg} />)}
