@@ -396,6 +396,12 @@ function JuzCard({ juz, pageList, onOpenPages, typeCfg }) {
   const pagePct = Math.round((pageDone/pages.length)*100);
   const state = pageDone===pages.length?'done':(pageDone>0||pageClaimed>0)?'partial':'free';
   const bgMap = { free:'var(--cardFree)', partial:'var(--cardPartial)', done:'var(--cardDone)' };
+  const names = useMemo(() => {
+    const seen = new Set();
+    pages.forEach(p => { if (pageList[p]?.claimedBy) seen.add(pageList[p].claimedBy); });
+    return [...seen];
+  }, [pages, pageList]);
+  const namesLabel = names.length <= 3 ? names.join(', ') : `${names.slice(0,3).join(', ')} +${names.length-3}`;
   return (
     <div className="fade-in" style={{ background:bgMap[state], border:'1.5px solid var(--border)', borderRadius:14, padding:'14px 11px', display:'flex', flexDirection:'column', gap:5, cursor:'pointer', transition:'transform 0.18s, box-shadow 0.18s', boxShadow:'var(--shadow)', position:'relative', overflow:'hidden', animationDelay:`${(juz.n-1)*0.016}s` }}
       onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='var(--shadowHover)';}}
@@ -417,6 +423,9 @@ function JuzCard({ juz, pageList, onOpenPages, typeCfg }) {
           <span>📖 {pageClaimed}</span>
           <span>○ {pageFree}</span>
         </div>
+        {names.length > 0 && (
+          <div style={{ fontSize:8, color:'var(--textMuted)', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center' }}>{namesLabel}</div>
+        )}
         <div style={{ textAlign:'center', fontSize:10, color:'var(--gold)', fontWeight:700, marginTop:4 }}>
           {state==='done'?'🌙 Tamamlandı':`→ Aç`}
         </div>
