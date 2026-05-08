@@ -371,7 +371,7 @@ function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePage
               {st==='claimed' && (
                 <div style={{ display:'flex', gap:2, marginTop:3, justifyContent:'center' }}>
                   <button onClick={ev=>{ev.stopPropagation();onCompletePages([p]);}} style={{ fontSize:9, padding:'2px 5px', borderRadius:5, border:'none', cursor:'pointer', background:'var(--primary)', color:'#fff', fontWeight:700 }}>✓</button>
-                  <button onClick={ev=>{ev.stopPropagation();onUnclaimPage(p);}} style={{ fontSize:9, padding:'2px 5px', borderRadius:5, border:'none', cursor:'pointer', background:'transparent', color:'var(--textMuted)', border:'1px solid var(--border)' }}>✕</button>
+                  <button onClick={ev=>{ev.stopPropagation();onUnclaimPage(p);}} style={{ fontSize:9, padding:'2px 5px', borderRadius:5, cursor:'pointer', background:'transparent', color:'var(--textMuted)', border:'1px solid var(--border)' }}>✕</button>
                 </div>
               )}
             </div>
@@ -506,7 +506,6 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
     const updates = {};
     pageNums.forEach(p => { if (!pageList[p]) updates[`hatimByToken/${hatimToken}/pageList/${p}`] = { claimedBy:name, claimedAt:Date.now() }; });
     db.ref().update(updates);
-    setOpenJuz(null);
   };
 
   const completePages = (pageNums) => {
@@ -644,7 +643,7 @@ function Dashboard({ myHatimIds, addMyHatim, removeMyHatim, goToHatim }) {
   const onCreate = async (data) => {
     const token = generateHatimToken();
     const ref = getDb().ref(`hatimByToken/${token}`);
-    await ref.set({ ...data, pageList:{} });
+    await ref.set(data);
     addMyHatim(token);
     setShowCreate(false);
     goToHatim(token);
