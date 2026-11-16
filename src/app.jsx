@@ -52,7 +52,7 @@ const TYPE_CONFIG = {
     totalItems: 604,
     itemLabel: 'sayfa',
     sectionLabel: 'CÜZ',
-    getItemLink: n => `https://quran.com/page/${n}`,
+    getItemLink: n => `https://herkul.app/kuran-i-kerim/page/${n}`,
     linkLabel: '📖 Oku',
   },
   cevsen: {
@@ -242,10 +242,52 @@ const BUYUK_CEVSEN_ITEMS = [
   {"label": "101-122", "section": "Tevhidnâme", "link": "https://onlinekeyfiyet.wordpress.com/tnm101-122/"}
 ];
 
+// ── Ashâb-ı Bedir & Şühedâ-i Uhud template (parts as in the group's spreadsheet) ─
+const BEDIR_UHUD_ITEMS = [
+  {"label": "Sayfa 1–3", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/1"},
+  {"label": "Sayfa 4–6", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/4"},
+  {"label": "Sayfa 7–9", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/7"},
+  {"label": "Sayfa 10–12", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/10"},
+  {"label": "Sayfa 13–15", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/13"},
+  {"label": "Sayfa 16–18", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/16"},
+  {"label": "Sayfa 19–21", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/19"},
+  {"label": "Sayfa 22–24", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/22"},
+  {"label": "Sayfa 25–27", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/25"},
+  {"label": "Sayfa 28–30", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/28"},
+  {"label": "Sayfa 31–32 ve Dua", "section": "Ashâb-ı Bedir", "link": "https://herkul.app/ashabibedir/31"},
+  {"label": "Sayfa 1–2", "section": "Şühedâ-i Uhud", "link": "https://herkul.app/suhedaiuhud/1"},
+  {"label": "Sayfa 3–4", "section": "Şühedâ-i Uhud", "link": "https://herkul.app/suhedaiuhud/3"},
+  {"label": "Sayfa 5–6", "section": "Şühedâ-i Uhud", "link": "https://herkul.app/suhedaiuhud/5"},
+  {"label": "Sayfa 7 ve Dua", "section": "Şühedâ-i Uhud", "link": "https://herkul.app/suhedaiuhud/7"}
+];
+
+// ── Tavsiye zikirler ─────────────────────────────────────────────────────────
+// Shared counters, no names: hatim.zikirs = [{ text, target }], counts at hatim.zikirCounts/{i}.
+const TAVSIYE_ZIKIRLER = [
+  {"text": "Yâ Latîfu Yâ Allah", "target": 129},
+  {"text": "Yâ Hafîzu Yâ Allah", "target": 121},
+  {"text": "Yâ Settâru Yâ Allah", "target": 161},
+  {"text": "Sübhânallâhi ve bihamdihî sübhânallâhil azîm", "target": 100},
+  {"text": "Allâhümme salli alâ seyyidinâ Muhammedin ve alâ âli seyyidinâ Muhammed", "target": 100},
+  {"text": "Hasbunallâhu ve ni’mel vekîl", "target": 100},
+  {"text": "Hasbiyallâhü lâ ilâhe illâ hû, aleyhi tevekkeltü ve hüve rabbü’l-arşi’l-azîm", "target": 33},
+  {"text": "Sübhânallah", "target": 33},
+  {"text": "Elhamdülillâh", "target": 33},
+  {"text": "Allâhu ekber", "target": 33},
+  {"text": "Lâ ilâhe illallah", "target": 33},
+  {"text": "Lâ havle ve lâ kuvvete illâ billâhi’l-aliyyi’l-azîm", "target": 100},
+  {"text": "Estağfirullâhe’l-azîm ellezî lâ ilâhe illâ hüve’l-hayye’l-kayyûme ve etûbü ileyh", "target": 100},
+  {"text": "Allâhümme bârik lenâ fî Recebe ve Şa’bân, ve belliğnâ Ramazân", "target": 33},
+  {"text": "Lâ ilâhe illâ ente sübhâneke innî küntü mine’z-zâlimîn", "target": 100},
+  {"text": "Yâ Bâkî ente’l-Bâkî, Yâ Bâkî ente’l-Bâkî", "target": 33},
+  {"text": "Ferdün, Hayyün, Kayyûmün, Hakemün, Adlün, Kuddûsün", "target": 171}
+];
+
 // Templates offered in the create dialog. A template is stored as a normal hatim
 // (Firebase rules only allow quran|cevsen as type) plus its own items list.
 const HATIM_TEMPLATES = {
   buyukcevsen: { label: 'Büyük Cevşen', emoji: '📿', type: 'cevsen', items: BUYUK_CEVSEN_ITEMS },
+  bediruhud: { label: 'Bedir & Uhud', emoji: '🕌', type: 'cevsen', items: BEDIR_UHUD_ITEMS },
 };
 
 // Custom-list hatims (e.g. Büyük Cevşen imported from a spreadsheet) carry their own
@@ -262,7 +304,7 @@ function getTypeCfg(hatim) {
   });
   return {
     label: 'Liste Hatmi',
-    emoji: HATIM_TEMPLATES.buyukcevsen.emoji,
+    emoji: hatim.emoji || HATIM_TEMPLATES.buyukcevsen.emoji,
     sections,
     totalItems: items.length,
     itemLabel: 'okuma',
@@ -590,6 +632,7 @@ function CreateModal({ onCreate, onClose }) {
   const [organizer, setOrganizer] = useState('');
   const [deadline, setDeadline] = useState('');
   const [type, setType] = useState('quran');
+  const [withZikir, setWithZikir] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -600,7 +643,8 @@ function CreateModal({ onCreate, onClose }) {
     try {
       const tpl = HATIM_TEMPLATES[type];
       const data = { title:title.trim(), organizer:organizer.trim(), deadline, type: tpl ? tpl.type : type, createdAt:Date.now() };
-      if (tpl) data.items = tpl.items;
+      if (tpl) { data.items = tpl.items; data.emoji = tpl.emoji; }
+      if (withZikir) data.zikirs = TAVSIYE_ZIKIRLER;
       await onCreate(data);
     } catch (e) {
       console.error(e);
@@ -613,7 +657,7 @@ function CreateModal({ onCreate, onClose }) {
   return (
     <Modal title="Yeni Hatim Oluştur" subtitle="Create a New Hatim" onClose={onClose}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-        <div style={{ display:'flex', gap:10 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           {[...Object.entries(TYPE_CONFIG), ...Object.entries(HATIM_TEMPLATES)].map(([key, cfg]) => (
             <div key={key} onClick={()=>setType(key)} style={{ flex:1, padding:'12px', borderRadius:12, border:`2px solid ${type===key?'var(--gold)':'var(--border)'}`, cursor:'pointer', background:type===key?'var(--goldLight)':'var(--surfaceAlt)', transition:'all 0.18s', textAlign:'center' }}>
               <div style={{ fontSize:22, marginBottom:4 }}>{cfg.emoji}</div>
@@ -624,6 +668,10 @@ function CreateModal({ onCreate, onClose }) {
         <Inp label="Hatim Başlığı / Title" value={title} onChange={setTitle} placeholder={type==='quran'?'Ramazan Hatmi...':type==='cevsen'?'Ramazan Cevşeni...':'Büyük Cevşen Hatmi...'} required />
         <Inp label="Organizatör Adı / Your Name" value={organizer} onChange={setOrganizer} placeholder="Ahmed..." required />
         <Inp label="Son Tarih / Deadline (opsiyonel)" value={deadline} onChange={setDeadline} type="date" />
+        <label style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background:'var(--surfaceAlt)', cursor:'pointer', fontSize:13, color:'var(--text)', fontWeight:600 }}>
+          <input type="checkbox" checked={withZikir} onChange={e=>setWithZikir(e.target.checked)} style={{ width:18, height:18, accentColor:'var(--primary)' }} />
+          <span>📿 Tavsiye zikirleri ekle <span style={{ fontWeight:400, color:'var(--textMuted)' }}>· {TAVSIYE_ZIKIRLER.length} zikir, ortak sayaç</span></span>
+        </label>
         {error && (
           <div style={{ padding:'10px 12px', borderRadius:10, background:'oklch(95% 0.04 25)', color:'oklch(40% 0.15 25)', fontSize:12, fontWeight:700, lineHeight:1.5 }}>
             {error}
@@ -636,6 +684,56 @@ function CreateModal({ onCreate, onClose }) {
 }
 
 // ── My Pages Panel ───────────────────────────────────────────────────────────
+// ── Zikir Panel ─────────────────────────────────────────────────────────────
+function ZikirPanel({ hatimToken, zikirs, counts }) {
+  const list = Object.values(zikirs || {});
+  if (!list.length) return null;
+  counts = counts || {};
+  const add = (i, n) => {
+    getDb().ref(`hatimByToken/${hatimToken}/zikirCounts/${i}`).transaction(c => Math.max(0, (c || 0) + n));
+  };
+  const addCustom = (i) => {
+    const v = window.prompt('Kaç adet okudunuz?');
+    const n = parseInt(v, 10);
+    if (n > 0 && n <= 100000) add(i, n);
+  };
+  const doneCount = list.filter((z, i) => (counts[i] || 0) >= z.target).length;
+  const btn = { fontSize:11, padding:'5px 9px', borderRadius:8, border:'1.5px solid var(--border)', cursor:'pointer', background:'var(--surface)', color:'var(--text)', fontWeight:700 };
+  return (
+    <div className="fade-in" style={{ background:'var(--surface)', borderRadius:20, padding:22, marginBottom:24, boxShadow:'var(--shadow)', border:'1.5px solid var(--border)' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:14, gap:10 }}>
+        <div style={{ fontSize:10, fontWeight:800, letterSpacing:'0.08em', color:'var(--gold)' }}>📿 TAVSİYE ZİKİRLER</div>
+        <div style={{ fontSize:11, color:'var(--textMuted)' }}>{doneCount}/{list.length} tamamlandı</div>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+        {list.map((z, i) => {
+          const c = counts[i] || 0; const done = c >= z.target;
+          const pct = Math.min(100, Math.round(c / z.target * 100));
+          return (
+            <div key={i} style={{ background:done?'var(--cardDone)':'var(--surfaceAlt)', borderRadius:12, padding:'10px 12px' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', gap:10, alignItems:'flex-start' }}>
+                <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, lineHeight:1.4 }}>{z.text}</div>
+                <div style={{ fontSize:13, fontWeight:800, color:done?'var(--primary)':'var(--text)', whiteSpace:'nowrap' }}>{done && '✓ '}{c} <span style={{ color:'var(--textMuted)', fontWeight:600 }}>/ {z.target}</span></div>
+              </div>
+              <div style={{ height:4, borderRadius:4, background:'var(--border)', overflow:'hidden', margin:'8px 0' }}>
+                <div style={{ height:'100%', width:`${pct}%`, background:done?'var(--primary)':'var(--gold)', transition:'width 0.4s ease' }} />
+              </div>
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
+                <button onClick={()=>add(i, 1)} style={{ ...btn, background:'var(--primary)', color:'#fff', border:'none', padding:'6px 16px', fontSize:13 }}>+1</button>
+                <button onClick={()=>add(i, 10)} style={btn}>+10</button>
+                <button onClick={()=>add(i, 33)} style={btn}>+33</button>
+                <button onClick={()=>addCustom(i)} style={btn}>+ Adet</button>
+                <button onClick={()=>add(i, -1)} disabled={c===0} style={{ ...btn, marginLeft:'auto', color:'var(--textMuted)', opacity:c===0?0.4:1 }} title="Yanlışlıkla eklendiyse geri al">−1</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ fontSize:11, color:'var(--textMuted)', marginTop:12, textAlign:'center' }}>Okuduğunuz kadarını ekleyin; sayaç herkes için ortaktır.</p>
+    </div>
+  );
+}
+
 function MyPagesPanel({ pageList, currentUser, typeCfg, onCompletePages }) {
   if (!currentUser) return null;
 
@@ -788,6 +886,7 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(138px, 1fr))', gap:10 }}>
         {typeCfg.sections.map(j => <JuzCard key={j.n} juz={j} pageList={pageList} onOpenPages={setOpenJuz} typeCfg={typeCfg} />)}
       </div>
+      <div style={{ marginTop:24 }}><ZikirPanel hatimToken={hatimToken} zikirs={hatim.zikirs} counts={hatim.zikirCounts} /></div>
 
       {openJuz && <JuzPageModal juz={openJuz} pageList={pageList} currentUser={currentUser}
         onClaimPages={claimPages} onCompletePages={completePages} onUnclaimPage={unclaimPage}
