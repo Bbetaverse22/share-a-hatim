@@ -263,19 +263,19 @@ const BEDIR_UHUD_ITEMS = [
 
 // Templates offered in the create dialog. A template is stored as a normal hatim
 // (Firebase rules only allow quran|cevsen as type) plus its own items list.
-// ── Tevhîdnâme: 122 numbered duas, read in six parts (pages on onlinekeyfiyet) ─
+// ── Tevhîdnâme: 122 duas, read in six parts (one page each on onlinekeyfiyet) ─
+// A part is the smallest unit that can be linked, so each part is one item.
 const TEVHIDNAME_PARTS = [[1,20],[21,40],[41,60],[61,80],[81,100],[101,122]];
-const TEVHIDNAME_ITEMS = TEVHIDNAME_PARTS.flatMap(([a, b]) =>
-  Array.from({ length: b - a + 1 }, (_, i) => ({
-    label: String(a + i),
-    section: `Dua ${a}–${b}`,
-    link: `https://onlinekeyfiyet.wordpress.com/tnm${a}-${b}/`,
-  })));
+const TEVHIDNAME_ITEMS = TEVHIDNAME_PARTS.map(([a, b], i) => ({
+  label: `${i + 1}. Kısım · Dua ${a}–${b}`,
+  section: 'Tevhîdnâme',
+  link: `https://onlinekeyfiyet.wordpress.com/tnm${a}-${b}/`,
+}));
 
 const HATIM_TEMPLATES = {
   buyukcevsen: { label: 'Büyük Cevşen', emoji: '📿', type: 'cevsen', items: BUYUK_CEVSEN_ITEMS },
   bediruhud: { label: 'Bedir & Uhud', emoji: '🕌', type: 'cevsen', items: BEDIR_UHUD_ITEMS },
-  tevhidname: { label: 'Tevhîdnâme', emoji: '🤲', type: 'cevsen', items: TEVHIDNAME_ITEMS, itemLabel: 'dua' },
+  tevhidname: { label: 'Tevhîdnâme', emoji: '🤲', type: 'cevsen', items: TEVHIDNAME_ITEMS, itemLabel: 'kısım' },
 };
 
 // Custom-list hatims (e.g. Büyük Cevşen imported from a spreadsheet) carry their own
