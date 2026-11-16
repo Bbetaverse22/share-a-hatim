@@ -67,6 +67,31 @@ const TYPE_CONFIG = {
   },
 };
 
+// Custom-list hatims (e.g. Büyük Cevşen imported from a spreadsheet) carry their own
+// item list: hatim.items = [{ label, section, link }]. Items are numbered from 1 in
+// pageList, and consecutive items with the same section form one card.
+function getTypeCfg(hatim) {
+  const items = hatim && hatim.items ? Object.values(hatim.items) : null;
+  if (!items || !items.length) return TYPE_CONFIG[hatim && hatim.type] || TYPE_CONFIG.quran;
+  const sections = [];
+  items.forEach((it, i) => {
+    const last = sections[sections.length - 1];
+    if (last && last.title === it.section) last.end = i + 1;
+    else sections.push({ n: sections.length + 1, title: it.section, start: i + 1, end: i + 1 });
+  });
+  return {
+    label: 'Liste Hatmi',
+    emoji: TYPE_CONFIG.cevsen.emoji,
+    sections,
+    totalItems: items.length,
+    itemLabel: 'okuma',
+    sectionLabel: 'BÖLÜM',
+    getItemLink: n => (items[n-1] && items[n-1].link) || '#',
+    getItemName: n => (items[n-1] && items[n-1].label) || String(n),
+    linkLabel: '📖 Oku',
+  };
+}
+
 // ── Themes ───────────────────────────────────────────────────────────────────
 const THEMES = {
   zumrut: { bg:"oklch(96% 0.018 80)", surface:"oklch(99% 0.010 80)", surfaceAlt:"oklch(93% 0.022 80)", primary:"oklch(30% 0.09 160)", gold:"oklch(68% 0.13 75)", goldLight:"oklch(88% 0.08 80)", text:"oklch(18% 0.03 80)", textMuted:"oklch(52% 0.03 80)", border:"oklch(86% 0.020 80)", cardFree:"oklch(99% 0.010 80)", cardClaimed:"oklch(88% 0.06 165)", cardDone:"oklch(83% 0.09 160)", cardPartial:"oklch(90% 0.05 80)", shadow:"0 2px 12px oklch(0% 0 0 / 0.08)", shadowHover:"0 6px 24px oklch(0% 0 0 / 0.14)" },
@@ -272,7 +297,7 @@ function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePage
   };
 
   return (
-    <Modal title={`${juz.n}. ${typeCfg.sectionLabel.charAt(0) + typeCfg.sectionLabel.slice(1).toLowerCase()}`} subtitle={`${typeCfg.itemLabel.charAt(0).toUpperCase() + typeCfg.itemLabel.slice(1)} ${juz.start}–${juz.end}`} onClose={onClose} wide>
+    <Modal title={juz.title || `${juz.n}. ${typeCfg.sectionLabel.charAt(0) + typeCfg.sectionLabel.slice(1).toLowerCase()}`} subtitle={juz.title ? `${pages.length} ${typeCfg.itemLabel}` : `${typeCfg.itemLabel.charAt(0).toUpperCase() + typeCfg.itemLabel.slice(1)} ${juz.start}–${juz.end}`} onClose={onClose} wide>
       <div style={{ display:'flex', gap:12, marginBottom:14 }}>
         {[['Tamam',done,'var(--primary)'],['Okunuyor',claimed,'var(--gold)'],['Boş',free,'var(--textMuted)']].map(([l,v,c])=>(
           <div key={l} style={{ flex:1, background:'var(--surfaceAlt)', borderRadius:10, padding:'10px 0', textAlign:'center' }}>
@@ -289,12 +314,12 @@ function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePage
       </div>
       {selected.length > 0 && (
         <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10, padding:'8px 12px', background:'var(--goldLight)', borderRadius:10 }}>
-          <span style={{ flex:1, fontSize:13, fontWeight:600, color:'var(--text)' }}>{selected.length} sayfa seçildi</span>
+          <span style={{ flex:1, fontSize:13, fontWeight:600, color:'var(--text)' }}>{selected.length} {typeCfg.itemLabel} seçildi</span>
           <Btn variant="primary" small onClick={claimSelected} disabled={!nameInput.trim()}>Üstlen</Btn>
           <Btn variant="ghost" small onClick={()=>setSelected([])}>İptal</Btn>
         </div>
       )}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(68px, 1fr))', gap:6 }}>
+      <div style={{ display:'grid', gridTemplateColumns:`repeat(auto-fill, minmax(${typeCfg.getItemName ? 120 : 68}px, 1fr))`, gap:6 }}>
         {pages.map(p => {
           const st = getState(p); const e = pageList[p]||{}; const isSel = selected.includes(p);
           return (
@@ -303,8 +328,12 @@ function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePage
               onMouseEnter={ev=>{ if(st==='free') ev.currentTarget.style.transform='scale(1.07)'; }}
               onMouseLeave={ev=>{ ev.currentTarget.style.transform='none'; }}
             >
-              <div style={{ fontSize:15, fontWeight:800, color:isSel?'#fff':'var(--text)', lineHeight:1 }}>{p}</div>
-              <div style={{ fontSize:9, color:isSel?'rgba(255,255,255,0.7)':'var(--textMuted)', marginTop:1 }}>{itemLabel}</div>
+              {typeCfg.getItemName
+                ? <div style={{ fontSize:12, fontWeight:800, color:isSel?'#fff':'var(--text)', lineHeight:1.25, wordBreak:'break-word' }}>{typeCfg.getItemName(p)}</div>
+                : <>
+                    <div style={{ fontSize:15, fontWeight:800, color:isSel?'#fff':'var(--text)', lineHeight:1 }}>{p}</div>
+                    <div style={{ fontSize:9, color:isSel?'rgba(255,255,255,0.7)':'var(--textMuted)', marginTop:1 }}>{itemLabel}</div>
+                  </>}
               {st==='claimed' && <div style={{ fontSize:9, color:'var(--primary)', fontWeight:700, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.claimedBy}</div>}
               {st==='done' && <div style={{ fontSize:9, color:'var(--primary)', fontWeight:800, marginTop:2 }}>✓ {e.claimedBy}</div>}
               <a href={getItemLink(p)} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
@@ -320,7 +349,7 @@ function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePage
         })}
       </div>
       <p style={{ fontSize:11, color:'var(--textMuted)', marginTop:12, textAlign:'center' }}>
-        Birden fazla sayfa seçmek için üzerine tıklayın.
+        Birden fazla {typeCfg.itemLabel} seçmek için üzerine tıklayın.
       </p>
     </Modal>
   );
@@ -351,8 +380,8 @@ function JuzCard({ juz, pageList, onOpenPages, typeCfg }) {
       {state==='done'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--primary)', color:'#fff', fontSize:9, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>✓ Tamam</div>}
       {state==='partial'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--gold)', color:'#fff', fontSize:9, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>Devam</div>}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <span style={{ fontSize:10, fontWeight:800, color:'var(--textMuted)', letterSpacing:'0.07em' }}>{juz.n}. {typeCfg.sectionLabel}</span>
-        <span style={{ fontSize:9, color:'var(--textMuted)' }}>{juz.start}–{juz.end}</span>
+        <span style={{ fontSize:10, fontWeight:800, color:'var(--textMuted)', letterSpacing:'0.07em' }}>{juz.title ? juz.title.toLocaleUpperCase('tr-TR') : `${juz.n}. ${typeCfg.sectionLabel}`}</span>
+        <span style={{ fontSize:9, color:'var(--textMuted)', whiteSpace:'nowrap' }}>{juz.title ? pages.length : `${juz.start}–${juz.end}`}</span>
       </div>
       <div style={{ marginTop:4 }}>
         <div style={{ height:3, borderRadius:3, background:'var(--border)', overflow:'hidden', marginBottom:4 }}>
@@ -458,8 +487,10 @@ function MyPagesPanel({ pageList, currentUser, typeCfg, onCompletePages }) {
         <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
           {myPending.map(p => (
             <div key={p} style={{ display:'flex', alignItems:'center', gap:6, background:'var(--cardClaimed)', border:'1.5px solid var(--border)', borderRadius:10, padding:'7px 10px' }}>
-              <span style={{ fontSize:14, fontWeight:800, color:'var(--text)' }}>{p}</span>
-              <span style={{ fontSize:10, color:'var(--textMuted)' }}>{itemLabel}</span>
+              {typeCfg.getItemName
+                ? <span style={{ fontSize:12, fontWeight:800, color:'var(--text)' }}>{typeCfg.sections.find(sec=>p>=sec.start&&p<=sec.end)?.title} · {typeCfg.getItemName(p)}</span>
+                : <><span style={{ fontSize:14, fontWeight:800, color:'var(--text)' }}>{p}</span>
+                   <span style={{ fontSize:10, color:'var(--textMuted)' }}>{itemLabel}</span></>}
               <a href={getItemLink(p)} target="_blank" rel="noopener noreferrer"
                 style={{ fontSize:10, color:'var(--gold)', fontWeight:700, textDecoration:'none' }}>📖 Oku</a>
               <button onClick={() => onCompletePages([p])}
@@ -506,7 +537,7 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
   );
 
   const pageList = hatim.pageList || {};
-  const typeCfg = TYPE_CONFIG[hatim.type] || TYPE_CONFIG.quran;
+  const typeCfg = getTypeCfg(hatim);
   const doneCount = Object.values(pageList).filter(e=>e.completedAt).length;
   const claimedCount = Object.values(pageList).filter(e=>e.claimedBy&&!e.completedAt).length;
   const pct = Math.round((doneCount/typeCfg.totalItems)*100);
@@ -604,7 +635,7 @@ function DashboardHatimCard({ id, onOpen, onRemove }) {
   );
 
   const pageList = hatim.pageList || {};
-  const typeCfg = TYPE_CONFIG[hatim.type] || TYPE_CONFIG.quran;
+  const typeCfg = getTypeCfg(hatim);
   const done = Object.values(pageList).filter(e=>e.completedAt).length;
   const claimed = Object.values(pageList).filter(e=>e.claimedBy&&!e.completedAt).length;
   const pct = Math.round((done/typeCfg.totalItems)*100);
