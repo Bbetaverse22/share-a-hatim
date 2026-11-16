@@ -267,8 +267,8 @@ const BEDIR_UHUD_ITEMS = [
 // A part is the smallest unit that can be linked, so each part is one item.
 const TEVHIDNAME_PARTS = [[1,20],[21,40],[41,60],[61,80],[81,100],[101,122]];
 const TEVHIDNAME_ITEMS = TEVHIDNAME_PARTS.map(([a, b], i) => ({
-  label: `${i + 1}. Kısım · Dua ${a}–${b}`,
-  section: 'Tevhîdnâme',
+  label: `Dua ${a}–${b}`,
+  section: `${i + 1}. Kısım`,
   link: `https://onlinekeyfiyet.wordpress.com/tnm${a}-${b}/`,
 }));
 
@@ -709,6 +709,8 @@ function JuzCard({ juz, pageList, onOpenPages, typeCfg }) {
     return [...seen];
   }, [pages, pageList]);
   const namesLabel = names.length <= 3 ? names.join(', ') : `${names.slice(0,3).join(', ')} +${names.length-3}`;
+  // One-item section (e.g. a Tevhîdnâme part): no counts, just who has it.
+  const single = pages.length === 1;
   return (
     <div className="fade-in" style={{ background:bgMap[state], border:'1.5px solid var(--border)', borderRadius:14, padding:'14px 11px', display:'flex', flexDirection:'column', gap:5, cursor:'pointer', transition:'transform 0.18s, box-shadow 0.18s', boxShadow:'var(--shadow)', position:'relative', overflow:'hidden', animationDelay:`${(juz.n-1)*0.016}s` }}
       onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='var(--shadowHover)';}}
@@ -716,11 +718,21 @@ function JuzCard({ juz, pageList, onOpenPages, typeCfg }) {
       onClick={()=>onOpenPages(juz)}
     >
       {state==='done'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--primary)', color:'#fff', fontSize:10, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>✓ Tamam</div>}
-      {state==='partial'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--gold)', color:'#fff', fontSize:10, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>Devam</div>}
+      {state==='partial'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--gold)', color:'#fff', fontSize:10, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>{single ? 'Alındı' : 'Devam'}</div>}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:6, marginTop:14 }}>
         <span style={{ fontSize:11, fontWeight:800, color:'var(--textMuted)', letterSpacing:'0.06em' }}>{juz.title ? juz.title.toLocaleUpperCase('tr-TR') : `${juz.n}. ${typeCfg.sectionLabel}`}</span>
-        <span style={{ fontSize:11, color:'var(--textMuted)', whiteSpace:'nowrap' }}>{juz.title ? pages.length : `${juz.start}–${juz.end}`}</span>
+        <span style={{ fontSize:11, color:'var(--textMuted)', whiteSpace:'nowrap' }}>{single && typeCfg.getItemName ? typeCfg.getItemName(juz.start) : juz.title ? pages.length : `${juz.start}–${juz.end}`}</span>
       </div>
+      {single ? (
+        <div style={{ marginTop:6, textAlign:'center' }}>
+          <div style={{ fontSize:15, fontWeight:800, color:names.length?'var(--text)':'var(--textMuted)', lineHeight:1.3, wordBreak:'break-word', minHeight:20 }}>
+            {names.length ? (state==='done' ? `✓ ${names[0]}` : names[0]) : 'Boş'}
+          </div>
+          <div style={{ fontSize:12, color:'var(--gold)', fontWeight:700, marginTop:6 }}>
+            {state==='done' ? '🌙 Tamamlandı' : state==='partial' ? '📖 Okunuyor' : '→ Almak için dokunun'}
+          </div>
+        </div>
+      ) : (
       <div style={{ marginTop:4 }}>
         <div style={{ height:3, borderRadius:3, background:'var(--border)', overflow:'hidden', marginBottom:4 }}>
           <div style={{ height:'100%', width:`${pagePct}%`, background:'var(--gold)', transition:'width 0.5s ease', borderRadius:3 }} />
@@ -737,7 +749,42 @@ function JuzCard({ juz, pageList, onOpenPages, typeCfg }) {
           {state==='done'?'🌙 Tamamlandı':`→ Aç`}
         </div>
       </div>
+      )}
     </div>
+  );
+}
+
+// ── Single item modal: take one part with just a name ────────────────────────
+function SingleItemModal({ juz, pageList, typeCfg, onClaimPages, onCompletePages, onUnclaimPage, onClose }) {
+  const p = juz.start;
+  const e = pageList[p];
+  const [name, setName] = useState('');
+  const itemName = typeCfg.getItemName ? typeCfg.getItemName(p) : `${p}. ${typeCfg.itemLabel}`;
+  const claim = () => { if (!name.trim()) return; onClaimPages([p], name.trim()); onClose(); };
+  const read = <a href={typeCfg.getItemLink(p)} target="_blank" rel="noopener noreferrer"
+    style={{ display:'block', textAlign:'center', padding:'11px', borderRadius:10, border:'1.5px solid var(--border)', color:'var(--gold)', fontWeight:800, fontSize:15, textDecoration:'none' }}>{typeCfg.linkLabel}</a>;
+  return (
+    <Modal title={juz.title || itemName} subtitle={juz.title ? itemName : ''} onClose={onClose}>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        {!e ? <>
+          <Inp label="Adınız / Your Name" value={name} onChange={setName} placeholder="Adınızı yazın" />
+          <Btn onClick={claim} disabled={!name.trim()}>Üstlen</Btn>
+          {read}
+        </> : <>
+          <div style={{ textAlign:'center', padding:'14px', borderRadius:12, background:e.completedAt?'var(--cardDone)':'var(--cardClaimed)' }}>
+            <div style={{ fontSize:12, color:'var(--textMuted)', fontWeight:700, marginBottom:4 }}>{e.completedAt ? 'Okundu' : 'Okuyacak kişi'}</div>
+            <div style={{ fontSize:20, fontWeight:800, color:'var(--text)', wordBreak:'break-word' }}>{e.completedAt ? '✓ ' : ''}{e.claimedBy}</div>
+          </div>
+          {read}
+          {!e.completedAt && (
+            <div style={{ display:'flex', gap:10 }}>
+              <Btn onClick={()=>{ onCompletePages([p]); onClose(); }} style={{ flex:1 }}>✓ Okudum</Btn>
+              <Btn variant="ghost" onClick={()=>{ onUnclaimPage(p); onClose(); }} style={{ flex:1 }}>Bırak</Btn>
+            </div>
+          )}
+        </>}
+      </div>
+    </Modal>
   );
 }
 
@@ -952,7 +999,9 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
         {typeCfg.sections.map(j => <JuzCard key={j.n} juz={j} pageList={pageList} onOpenPages={setOpenJuz} typeCfg={typeCfg} />)}
       </div>
 
-      {openJuz && <JuzPageModal juz={openJuz} pageList={pageList}
+      {openJuz && openJuz.start === openJuz.end && <SingleItemModal juz={openJuz} pageList={pageList} typeCfg={typeCfg}
+        onClaimPages={claimPages} onCompletePages={completePages} onUnclaimPage={unclaimPage} onClose={()=>setOpenJuz(null)} />}
+      {openJuz && openJuz.start !== openJuz.end && <JuzPageModal juz={openJuz} pageList={pageList}
         onClaimPages={claimPages} onCompletePages={completePages} onUnclaimPage={unclaimPage}
         onClose={()=>setOpenJuz(null)} typeCfg={typeCfg} />}
       {showShare && <ShareModal hatimToken={hatimToken} onClose={()=>setShowShare(false)} />}
