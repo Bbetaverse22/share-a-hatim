@@ -518,6 +518,16 @@ function useHatimManifest(hatimToken, title) {
   }, [hatimToken, title]);
 }
 
+// Safari's share icon (square with an up arrow), drawn so people can match it.
+function IosShareIcon() {
+  return (
+    <svg width="20" height="24" viewBox="0 0 20 24" style={{ verticalAlign:'-5px', margin:'0 2px' }} aria-label="Paylaş simgesi">
+      <path d="M10 2v13M5.5 6.5L10 2l4.5 4.5" fill="none" stroke="#0a84ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.5 10H3.5v12h13V10h-3" fill="none" stroke="#0a84ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function InstallModal({ onClose }) {
   const platform = devicePlatform();
   const step = (n, text) => (
@@ -531,8 +541,8 @@ function InstallModal({ onClose }) {
     <Modal title="Telefona Ekle" subtitle="Bu hatim ana ekranınızda uygulama gibi durur, link kaybolmaz" onClose={onClose}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         {platform === 'ios' ? <>
-          {step(1, <>Ekranın altındaki {b('Paylaş')} butonuna dokunun <span style={{ fontSize:18 }}>⬆️</span></>)}
-          {step(2, <>Listeyi aşağı kaydırıp {b('Ana Ekrana Ekle')}'yi seçin</>)}
+          {step(1, <>Safari'nin {b('paylaş simgesine')} <IosShareIcon /> dokunun. Bu simge ekranın en altında, adres çubuğunun yanındadır.<div style={{ fontSize:13, color:'var(--textMuted)', marginTop:4 }}>Görmüyorsanız alttaki {b('⋯')} simgesine, sonra {b('Paylaş')}'a dokunun. <em>(Sayfadaki sarı "Paylaş" butonu değil.)</em></div></>)}
+          {step(2, <>Açılan listeyi yukarı kaydırın ve {b('Ana Ekrana Ekle')}'yi seçin<div style={{ fontSize:13, color:'var(--textMuted)', marginTop:4 }}>Görmüyorsanız {b('Daha Fazla')}'ya dokunun.</div></>)}
           {step(3, <>Sağ üstteki {b('Ekle')}'ye dokunun</>)}
         </> : platform === 'android' ? <>
           {step(1, <>Sağ üstteki {b('⋮')} menüsüne dokunun</>)}
