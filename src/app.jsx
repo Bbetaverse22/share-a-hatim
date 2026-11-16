@@ -477,6 +477,92 @@ function ShareModal({ hatimToken, onClose }) {
   );
 }
 
+// ── Add to home screen ───────────────────────────────────────────────────────
+// Android/Chrome fires beforeinstallprompt; keep it so our button can open the
+// native install dialog. iPhone has no such API, so we show instructions.
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _installPrompt = e; });
+window.addEventListener('appinstalled', () => { _installPrompt = null; });
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function devicePlatform() {
+  const ua = navigator.userAgent || '';
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (ios) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'other';
+}
+
+// Point the web app manifest at the current hatim, so the home-screen icon
+// opens this hatim (on iPhone the installed app has its own storage, so
+// opening the dashboard there would show an empty list).
+function useHatimManifest(hatimToken, title) {
+  useEffect(() => {
+    const link = document.querySelector('link[rel=manifest]');
+    const appleTitle = document.querySelector('meta[name=apple-mobile-web-app-title]');
+    if (!link || !hatimToken) return;
+    let cancelled = false;
+    fetch('manifest.json').then(r => r.json()).then(base => {
+      if (cancelled) return;
+      const abs = u => new URL(u, location.href).href;
+      const url = abs(`./#hatim/${hatimToken}`);
+      const name = title || base.name;
+      const m = { ...base, name, short_name: name.length > 14 ? base.short_name : name, start_url: url, id: url, scope: abs('./'),
+                  icons: base.icons.map(i => ({ ...i, src: abs(i.src) })) };
+      link.href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m));
+      if (appleTitle) appleTitle.content = m.short_name;
+    }).catch(() => {});
+    return () => { cancelled = true; link.href = 'manifest.json'; if (appleTitle) appleTitle.content = 'Hatim'; };
+  }, [hatimToken, title]);
+}
+
+function InstallModal({ onClose }) {
+  const platform = devicePlatform();
+  const step = (n, text) => (
+    <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+      <div style={{ flex:'0 0 28px', height:28, borderRadius:14, background:'var(--primary)', color:'#fff', fontWeight:800, fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>{n}</div>
+      <div style={{ fontSize:15, color:'var(--text)', lineHeight:1.5, paddingTop:3 }}>{text}</div>
+    </div>
+  );
+  const b = t => <strong>{t}</strong>;
+  return (
+    <Modal title="Telefona Ekle" subtitle="Bu hatim ana ekranınızda uygulama gibi durur, link kaybolmaz" onClose={onClose}>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        {platform === 'ios' ? <>
+          {step(1, <>Ekranın altındaki {b('Paylaş')} butonuna dokunun <span style={{ fontSize:18 }}>⬆️</span></>)}
+          {step(2, <>Listeyi aşağı kaydırıp {b('Ana Ekrana Ekle')}'yi seçin</>)}
+          {step(3, <>Sağ üstteki {b('Ekle')}'ye dokunun</>)}
+        </> : platform === 'android' ? <>
+          {step(1, <>Sağ üstteki {b('⋮')} menüsüne dokunun</>)}
+          {step(2, <>{b('Ana ekrana ekle')} ya da {b('Uygulamayı yükle')}'yi seçin</>)}
+          {step(3, <>{b('Ekle')} / {b('Yükle')}'ye dokunun</>)}
+        </> : <>
+          {step(1, <>Bu sayfayı telefonunuzda açın</>)}
+          {step(2, <>Tarayıcının menüsünden {b('Ana Ekrana Ekle')}'yi seçin</>)}
+        </>}
+        <div style={{ background:'var(--goldLight)', borderRadius:12, padding:'12px 14px', fontSize:13, color:'var(--text)', lineHeight:1.55 }}>
+          💡 Linki <strong>WhatsApp'ın içinde</strong> açtıysanız bu seçenek görünmez. Önce sayfayı {platform === 'ios' ? <strong>Safari</strong> : <strong>Chrome</strong>}'da açın: sağ üstteki {platform === 'ios' ? <strong>⋯ / pusula</strong> : <strong>⋮</strong>} simgesi → <strong>{platform === 'ios' ? "Safari'de Aç" : 'Tarayıcıda aç'}</strong>.
+        </div>
+        <Btn onClick={onClose}>Tamam</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+function InstallButton({ onShowHelp }) {
+  if (isStandalone()) return null;
+  const onClick = async () => {
+    if (_installPrompt) {
+      const ev = _installPrompt; _installPrompt = null;
+      try { ev.prompt(); await ev.userChoice; return; } catch {}
+    }
+    onShowHelp();
+  };
+  return <Btn small variant="ghost" onClick={onClick}>📲 Telefona Ekle</Btn>;
+}
+
 // ── Page Modal ────────────────────────────────────────────────────────────────
 function JuzPageModal({ juz, pageList, onClaimPages, onCompletePages, onUnclaimPage, onClose, typeCfg }) {
   typeCfg = typeCfg || TYPE_CONFIG.quran;
@@ -727,6 +813,8 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
   const { hatim, loading } = useHatim(hatimToken);
   const [openJuz, setOpenJuz] = useState(null);
   const [showShare, setShowShare] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
+  useHatimManifest(hatim && !hatim.deletedAt ? hatimToken : null, hatim && hatim.title);
 
   // Add to my list on first visit
   useEffect(() => { if (hatim) addMyHatim(hatimToken); }, [hatim, hatimToken, addMyHatim]);
@@ -779,7 +867,10 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
     <div style={{ maxWidth:1040, margin:'0 auto', padding:'24px 20px 60px' }}>
       <div className="fade-in" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
         <button onClick={goBack} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--textMuted)', fontSize:14, fontFamily:'Nunito', fontWeight:600 }}>← Dashboard</button>
-        <Btn small variant="gold" onClick={()=>setShowShare(true)}>📤 Paylaş</Btn>
+        <div style={{ display:'flex', gap:8 }}>
+          <InstallButton onShowHelp={()=>setShowInstall(true)} />
+          <Btn small variant="gold" onClick={()=>setShowShare(true)}>📤 Paylaş</Btn>
+        </div>
       </div>
 
       {/* Info card */}
@@ -824,6 +915,7 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
         onClaimPages={claimPages} onCompletePages={completePages} onUnclaimPage={unclaimPage}
         onClose={()=>setOpenJuz(null)} typeCfg={typeCfg} />}
       {showShare && <ShareModal hatimToken={hatimToken} onClose={()=>setShowShare(false)} />}
+      {showInstall && <InstallModal onClose={()=>setShowInstall(false)} />}
     </div>
   );
 }
