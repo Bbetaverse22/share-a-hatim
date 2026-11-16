@@ -1,9 +1,44 @@
 {
+  "framework": null,
+  "installCommand": "echo 'no install needed: app.js is prebuilt and committed'",
+  "buildCommand": "echo 'no build needed: app.js is prebuilt and committed'",
   "outputDirectory": ".",
   "headers": [
     {
       "source": "/(.*).js",
-      "headers": [{ "key": "Content-Type", "value": "text/javascript" }]
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/javascript"
+        }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/(index.html|app.js|manifest.json)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     }
   ]
 }

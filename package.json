@@ -1,0 +1,14 @@
+{
+  "name": "share-a-hatim",
+  "private": true,
+  "description": "Collaborative Quran & Cevşen hatim coordination app",
+  "scripts": {
+    "build": "babel src/app.jsx --out-file app.js --presets @babel/preset-react --minified --no-comments",
+    "watch": "babel src/app.jsx --out-file app.js --presets @babel/preset-react --watch"
+  },
+  "devDependencies": {
+    "@babel/cli": "7.29.7",
+    "@babel/core": "7.29.13",
+    "@babel/preset-react": "7.29.7"
+  }
+}
