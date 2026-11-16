@@ -67,6 +67,187 @@ const TYPE_CONFIG = {
   },
 };
 
+// ── Büyük Cevşen template ────────────────────────────────────────────────────
+// 170 readings, imported from the group's spreadsheet (names intentionally left out).
+const BUYUK_CEVSEN_ITEMS = [
+  {"label": "Yasin", "section": "Sûreler ve Dualar", "link": "https://www.islamveihsan.com/yasin-suresi-oku.html"},
+  {"label": "Fetih", "section": "Sûreler ve Dualar", "link": "https://www.islamveihsan.com/fetih-suresi-oku-fetih-suresi-turkce-fetih-suresi-meali.html"},
+  {"label": "Rahman", "section": "Sûreler ve Dualar", "link": "https://cetele.org/anasayfa/rahman-suresi/"},
+  {"label": "Haşr sonu", "section": "Sûreler ve Dualar", "link": "https://www.islamveihsan.com/lev-enzelna-okunusu-ve-anlami.html"},
+  {"label": "Mülk", "section": "Sûreler ve Dualar", "link": "https://www.islamveihsan.com/tebareke-mulk-suresi-arapca-turkce-okunusu-ve-meali.html"},
+  {"label": "Nebe", "section": "Sûreler ve Dualar", "link": "https://www.islamveihsan.com/amme-suresi-arapca-turkce-okunusu-ve-meali-nebe-suresi-oku-arapca-turkce.html"},
+  {"label": "Bakara son 2 âyet (Âmene’r-Resûlü)", "section": "Sûreler ve Dualar", "link": "https://onlinedua.org/buyuk-cevsen/52"},
+  {"label": "Bab 1-10", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/1"},
+  {"label": "Bab 11-20", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/2"},
+  {"label": "Bab 21-30", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/3"},
+  {"label": "Bab 31-40", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/4"},
+  {"label": "Bab 41-50", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/5"},
+  {"label": "Bab 51-60", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/6"},
+  {"label": "Bab 61-70", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/7"},
+  {"label": "Bab 71-80", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/8"},
+  {"label": "Bab 81-90", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/9"},
+  {"label": "Bab 91-100", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/10"},
+  {"label": "Duâsı (aşağı kaydırın)", "section": "Küçük Cevşen", "link": "https://hayirhah.com/cevsen/10"},
+  {"label": "Sayfa 154", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/154"},
+  {"label": "Sayfa 156", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/156"},
+  {"label": "Sayfa 158", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/158"},
+  {"label": "Sayfa 160", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/160"},
+  {"label": "Sayfa 162", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/162"},
+  {"label": "Sayfa 164", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/164"},
+  {"label": "Sayfa 166", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/166"},
+  {"label": "Sayfa 168", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/168"},
+  {"label": "Sayfa 170", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/170"},
+  {"label": "Sayfa 172", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/172"},
+  {"label": "Sayfa 174", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/174"},
+  {"label": "Sayfa 176", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/176"},
+  {"label": "Sayfa 178", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/178"},
+  {"label": "Sayfa 180", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/180"},
+  {"label": "Sayfa 182", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/182"},
+  {"label": "Sayfa 184", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/184"},
+  {"label": "Sayfa 186", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/186"},
+  {"label": "Sayfa 188", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/188"},
+  {"label": "Sayfa 190", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/190"},
+  {"label": "Sayfa 192", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/192"},
+  {"label": "Sayfa 194", "section": "Evrâd-ı Kudsiye", "link": "https://onlinedua.org/buyuk-cevsen/194"},
+  {"label": "Sayfa 202", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/202"},
+  {"label": "Sayfa 204", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/204"},
+  {"label": "Sayfa 206", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/206"},
+  {"label": "Sayfa 208", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/208"},
+  {"label": "Sayfa 210", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/210"},
+  {"label": "Sayfa 212", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/212"},
+  {"label": "Sayfa 214", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/214"},
+  {"label": "Sayfa 216", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/216"},
+  {"label": "Sayfa 218", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/218"},
+  {"label": "Sayfa 220", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/220"},
+  {"label": "Sayfa 222", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/222"},
+  {"label": "Sayfa 224", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/224"},
+  {"label": "Sayfa 226", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/226"},
+  {"label": "Sayfa 228", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/228"},
+  {"label": "Sayfa 230", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/230"},
+  {"label": "Sayfa 232", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/232"},
+  {"label": "Sayfa 234", "section": "Delâilü’n-Nur", "link": "https://onlinedua.org/buyuk-cevsen/234"},
+  {"label": "1. okuma · 3 defa (2. sayfa dahil)", "section": "Sekîne", "link": "https://onlinedua.org/buyuk-cevsen/236"},
+  {"label": "2. okuma · 3 defa (2. sayfa dahil)", "section": "Sekîne", "link": "https://onlinedua.org/buyuk-cevsen/236"},
+  {"label": "3. okuma · 3 defa (2. sayfa dahil)", "section": "Sekîne", "link": "https://onlinedua.org/buyuk-cevsen/236"},
+  {"label": "4. okuma · 3 defa (2. sayfa dahil)", "section": "Sekîne", "link": "https://onlinedua.org/buyuk-cevsen/236"},
+  {"label": "5. okuma · 3 defa (2. sayfa dahil)", "section": "Sekîne", "link": "https://onlinedua.org/buyuk-cevsen/236"},
+  {"label": "6. okuma · 3 defa (2. sayfa dahil)", "section": "Sekîne", "link": "https://onlinedua.org/buyuk-cevsen/236"},
+  {"label": "7. okuma · 1 defa (2. sayfa dahil)", "section": "Sekîne", "link": "https://onlinedua.org/buyuk-cevsen/236"},
+  {"label": "Sayfa 240", "section": "Hz. Veysel Karanî Münâcâtı", "link": "https://onlinedua.org/buyuk-cevsen/240"},
+  {"label": "Sayfa 242", "section": "Hz. Veysel Karanî Münâcâtı", "link": "https://onlinedua.org/buyuk-cevsen/242"},
+  {"label": "Sayfa 248", "section": "Duâ-i Tercüman-ı İsm-i A’zam", "link": "https://onlinedua.org/buyuk-cevsen/248"},
+  {"label": "Sayfa 250", "section": "Duâ-i Tercüman-ı İsm-i A’zam", "link": "https://onlinedua.org/buyuk-cevsen/250"},
+  {"label": "Sayfa 252", "section": "Duâ-i Tercüman-ı İsm-i A’zam", "link": "https://onlinedua.org/buyuk-cevsen/252"},
+  {"label": "Sayfa 254", "section": "Duâ-i İsm-i A’zam", "link": "https://onlinedua.org/buyuk-cevsen/254"},
+  {"label": "Sayfa 256", "section": "Duâ-i İsm-i A’zam", "link": "https://onlinedua.org/buyuk-cevsen/256"},
+  {"label": "Sayfa 262", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/262"},
+  {"label": "Sayfa 264", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/264"},
+  {"label": "Sayfa 266", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/266"},
+  {"label": "Sayfa 268", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/268"},
+  {"label": "Sayfa 270", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/270"},
+  {"label": "Sayfa 272", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/272"},
+  {"label": "Sayfa 274", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/274"},
+  {"label": "Sayfa 276", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/276"},
+  {"label": "Sayfa 278", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/278"},
+  {"label": "Sayfa 280", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/280"},
+  {"label": "Sayfa 282", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/282"},
+  {"label": "Sayfa 284", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/284"},
+  {"label": "Sayfa 286", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/286"},
+  {"label": "Sayfa 288", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/288"},
+  {"label": "Sayfa 290", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/290"},
+  {"label": "Sayfa 292", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/292"},
+  {"label": "Sayfa 294", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/294"},
+  {"label": "Sayfa 296", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/296"},
+  {"label": "Sayfa 298", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/298"},
+  {"label": "Sayfa 300", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/300"},
+  {"label": "Sayfa 302", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/302"},
+  {"label": "Sayfa 304", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/304"},
+  {"label": "Sayfa 306", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/306"},
+  {"label": "Sayfa 308", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/308"},
+  {"label": "Sayfa 310", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/310"},
+  {"label": "Sayfa 312", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/312"},
+  {"label": "Sayfa 314", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/314"},
+  {"label": "Sayfa 316", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/316"},
+  {"label": "Sayfa 318", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/318"},
+  {"label": "Sayfa 320", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/320"},
+  {"label": "Sayfa 322", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/322"},
+  {"label": "Sayfa 324", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/324"},
+  {"label": "Sayfa 326", "section": "Münâcâtü’l-Kur’ân", "link": "https://onlinedua.org/buyuk-cevsen/326"},
+  {"label": "Sayfa 330", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/1"},
+  {"label": "Sayfa 332", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/1"},
+  {"label": "Sayfa 334", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/1"},
+  {"label": "Sayfa 336", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/1"},
+  {"label": "Sayfa 338", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/1"},
+  {"label": "Sayfa 340", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/1"},
+  {"label": "Sayfa 342", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/1"},
+  {"label": "Sayfa 344", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/1"},
+  {"label": "Sayfa 346", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/2"},
+  {"label": "Sayfa 348", "section": "Tahmîdiyye", "link": "https://hayirhah.com/cevsen/3"},
+  {"label": "Sayfa 350", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/350"},
+  {"label": "Sayfa 352", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/352"},
+  {"label": "Sayfa 354", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/354"},
+  {"label": "Sayfa 356", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/356"},
+  {"label": "Sayfa 358", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/358"},
+  {"label": "Sayfa 360", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/360"},
+  {"label": "Sayfa 362", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/362"},
+  {"label": "Sayfa 364", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/364"},
+  {"label": "Sayfa 366", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/366"},
+  {"label": "Sayfa 368", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/368"},
+  {"label": "Sayfa 370", "section": "Tahmîdiyye", "link": "https://onlinedua.org/buyuk-cevsen/370"},
+  {"label": "Sayfa 376", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/376"},
+  {"label": "Sayfa 378", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/378"},
+  {"label": "Sayfa 380", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/380"},
+  {"label": "Sayfa 382", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/382"},
+  {"label": "Sayfa 384", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/384"},
+  {"label": "Sayfa 386", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/386"},
+  {"label": "Sayfa 388", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/388"},
+  {"label": "Sayfa 390", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/390"},
+  {"label": "Sayfa 392", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/392"},
+  {"label": "Sayfa 394", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/394"},
+  {"label": "Sayfa 396", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/396"},
+  {"label": "Sayfa 398", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/398"},
+  {"label": "Sayfa 400", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/400"},
+  {"label": "Sayfa 402", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/402"},
+  {"label": "Sayfa 404", "section": "Hülâsatü’l-Hülâsa", "link": "https://onlinedua.org/buyuk-cevsen/404"},
+  {"label": "Sayfa 408", "section": "Hz. Abdülkâdir Geylânî Münâcâtı", "link": "https://onlinedua.org/buyuk-cevsen/408"},
+  {"label": "Sayfa 410", "section": "Hz. Abdülkâdir Geylânî Münâcâtı", "link": "https://onlinedua.org/buyuk-cevsen/410"},
+  {"label": "Sayfa 412", "section": "Hz. Abdülkâdir Geylânî Münâcâtı", "link": "https://onlinedua.org/buyuk-cevsen/412"},
+  {"label": "Sayfa 414", "section": "Hz. Abdülkâdir Geylânî Münâcâtı", "link": "https://onlinedua.org/buyuk-cevsen/414"},
+  {"label": "Sayfa 416", "section": "Hz. Abdülkâdir Geylânî Münâcâtı", "link": "https://onlinedua.org/buyuk-cevsen/416"},
+  {"label": "Sayfa 418", "section": "Bir Duâ", "link": "https://onlinedua.org/buyuk-cevsen/418"},
+  {"label": "Sayfa 420", "section": "Bir Duâ", "link": "https://onlinedua.org/buyuk-cevsen/420"},
+  {"label": "Sayfa 422", "section": "Bir Duâ", "link": "https://onlinedua.org/buyuk-cevsen/422"},
+  {"label": "Sayfa 424", "section": "Bir Duâ", "link": "https://onlinedua.org/buyuk-cevsen/424"},
+  {"label": "Sayfa 430", "section": "Şefaat Duâsı", "link": "https://onlinedua.org/buyuk-cevsen/430"},
+  {"label": "Sayfa 432", "section": "Şefaat Duâsı", "link": "https://onlinedua.org/buyuk-cevsen/432"},
+  {"label": "Sayfa 434", "section": "Şefaat Duâsı", "link": "https://onlinedua.org/buyuk-cevsen/434"},
+  {"label": "Sayfa 436", "section": "Şefaat Duâsı", "link": "https://onlinedua.org/buyuk-cevsen/436"},
+  {"label": "Sayfa 438", "section": "Şefaat Duâsı", "link": "https://onlinedua.org/buyuk-cevsen/438"},
+  {"label": "Sayfa 440", "section": "Şefaat Duâsı", "link": "https://onlinedua.org/buyuk-cevsen/440"},
+  {"label": "1. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/1"},
+  {"label": "2. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/2"},
+  {"label": "3. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/3"},
+  {"label": "4. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/4"},
+  {"label": "5. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/5"},
+  {"label": "6. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/6"},
+  {"label": "7. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/7"},
+  {"label": "8. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/8"},
+  {"label": "9. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/9"},
+  {"label": "10. kısım", "section": "Celcelûtiye", "link": "https://onlinedua.org/celcelutiye/10"},
+  {"label": "1-20", "section": "Tevhidnâme", "link": "https://onlinekeyfiyet.wordpress.com/tnm1-20/"},
+  {"label": "21-40", "section": "Tevhidnâme", "link": "https://onlinekeyfiyet.wordpress.com/tnm21-40/"},
+  {"label": "41-60", "section": "Tevhidnâme", "link": "https://onlinekeyfiyet.wordpress.com/tnm41-60/"},
+  {"label": "61-80", "section": "Tevhidnâme", "link": "https://onlinekeyfiyet.wordpress.com/tnm61-80/"},
+  {"label": "81-100", "section": "Tevhidnâme", "link": "https://onlinekeyfiyet.wordpress.com/tnm81-100/"},
+  {"label": "101-122", "section": "Tevhidnâme", "link": "https://onlinekeyfiyet.wordpress.com/tnm101-122/"}
+];
+
+// Templates offered in the create dialog. A template is stored as a normal hatim
+// (Firebase rules only allow quran|cevsen as type) plus its own items list.
+const HATIM_TEMPLATES = {
+  buyukcevsen: { label: 'Büyük Cevşen', emoji: '📿', type: 'cevsen', items: BUYUK_CEVSEN_ITEMS },
+};
+
 // Custom-list hatims (e.g. Büyük Cevşen imported from a spreadsheet) carry their own
 // item list: hatim.items = [{ label, section, link }]. Items are numbered from 1 in
 // pageList, and consecutive items with the same section form one card.
@@ -81,7 +262,7 @@ function getTypeCfg(hatim) {
   });
   return {
     label: 'Liste Hatmi',
-    emoji: TYPE_CONFIG.cevsen.emoji,
+    emoji: HATIM_TEMPLATES.buyukcevsen.emoji,
     sections,
     totalItems: items.length,
     itemLabel: 'okuma',
@@ -417,7 +598,10 @@ function CreateModal({ onCreate, onClose }) {
     setError('');
     setSaving(true);
     try {
-      await onCreate({ title:title.trim(), organizer:organizer.trim(), deadline, type, createdAt:Date.now() });
+      const tpl = HATIM_TEMPLATES[type];
+      const data = { title:title.trim(), organizer:organizer.trim(), deadline, type: tpl ? tpl.type : type, createdAt:Date.now() };
+      if (tpl) data.items = tpl.items;
+      await onCreate(data);
     } catch (e) {
       console.error(e);
       const msg = (e && (e.message || e.code)) ? `${e.code ? e.code + ': ' : ''}${e.message || ''}` : 'Kayıt sırasında hata oluştu.';
@@ -430,14 +614,14 @@ function CreateModal({ onCreate, onClose }) {
     <Modal title="Yeni Hatim Oluştur" subtitle="Create a New Hatim" onClose={onClose}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <div style={{ display:'flex', gap:10 }}>
-          {Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
+          {[...Object.entries(TYPE_CONFIG), ...Object.entries(HATIM_TEMPLATES)].map(([key, cfg]) => (
             <div key={key} onClick={()=>setType(key)} style={{ flex:1, padding:'12px', borderRadius:12, border:`2px solid ${type===key?'var(--gold)':'var(--border)'}`, cursor:'pointer', background:type===key?'var(--goldLight)':'var(--surfaceAlt)', transition:'all 0.18s', textAlign:'center' }}>
               <div style={{ fontSize:22, marginBottom:4 }}>{cfg.emoji}</div>
               <div style={{ fontWeight:700, fontSize:13, color:'var(--text)' }}>{cfg.label}</div>
             </div>
           ))}
         </div>
-        <Inp label="Hatim Başlığı / Title" value={title} onChange={setTitle} placeholder={type==='cevsen'?'Ramazan Cevşeni 2025...':'Ramazan Hatmi 2025...'} required />
+        <Inp label="Hatim Başlığı / Title" value={title} onChange={setTitle} placeholder={type==='quran'?'Ramazan Hatmi...':type==='cevsen'?'Ramazan Cevşeni...':'Büyük Cevşen Hatmi...'} required />
         <Inp label="Organizatör Adı / Your Name" value={organizer} onChange={setOrganizer} placeholder="Ahmed..." required />
         <Inp label="Son Tarih / Deadline (opsiyonel)" value={deadline} onChange={setDeadline} type="date" />
         {error && (
