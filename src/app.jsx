@@ -263,9 +263,19 @@ const BEDIR_UHUD_ITEMS = [
 
 // Templates offered in the create dialog. A template is stored as a normal hatim
 // (Firebase rules only allow quran|cevsen as type) plus its own items list.
+// ── Tevhîdnâme: 122 numbered duas, read in six parts (pages on onlinekeyfiyet) ─
+const TEVHIDNAME_PARTS = [[1,20],[21,40],[41,60],[61,80],[81,100],[101,122]];
+const TEVHIDNAME_ITEMS = TEVHIDNAME_PARTS.flatMap(([a, b]) =>
+  Array.from({ length: b - a + 1 }, (_, i) => ({
+    label: String(a + i),
+    section: `Dua ${a}–${b}`,
+    link: `https://onlinekeyfiyet.wordpress.com/tnm${a}-${b}/`,
+  })));
+
 const HATIM_TEMPLATES = {
   buyukcevsen: { label: 'Büyük Cevşen', emoji: '📿', type: 'cevsen', items: BUYUK_CEVSEN_ITEMS },
   bediruhud: { label: 'Bedir & Uhud', emoji: '🕌', type: 'cevsen', items: BEDIR_UHUD_ITEMS },
+  tevhidname: { label: 'Tevhîdnâme', emoji: '🤲', type: 'cevsen', items: TEVHIDNAME_ITEMS, itemLabel: 'dua' },
 };
 
 // Custom-list hatims (e.g. Büyük Cevşen imported from a spreadsheet) carry their own
@@ -280,15 +290,18 @@ function getTypeCfg(hatim) {
     if (last && last.title === it.section) last.end = i + 1;
     else sections.push({ n: sections.length + 1, title: it.section, start: i + 1, end: i + 1 });
   });
+  // Lists whose items are just their own numbers (e.g. Tevhîdnâme) use the
+  // compact numbered tiles, like the Quran and Cevşen.
+  const numbered = items.every((it, i) => it.label === String(i + 1));
   return {
     label: 'Liste Hatmi',
     emoji: hatim.emoji || '📿',
     sections,
     totalItems: items.length,
-    itemLabel: 'okuma',
+    itemLabel: hatim.itemLabel || 'okuma',
     sectionLabel: 'BÖLÜM',
     getItemLink: n => (items[n-1] && items[n-1].link) || '#',
-    getItemName: n => (items[n-1] && items[n-1].label) || String(n),
+    getItemName: numbered ? undefined : n => (items[n-1] && items[n-1].label) || String(n),
     linkLabel: '📖 Oku',
   };
 }
@@ -747,6 +760,7 @@ function CreateModal({ onCreate, onClose }) {
       if (tpl) {
         data.emoji = tpl.emoji;
         if (tpl.items) data.items = tpl.items;
+        if (tpl.itemLabel) data.itemLabel = tpl.itemLabel;
       }
       await onCreate(data);
     } catch (e) {
@@ -768,7 +782,7 @@ function CreateModal({ onCreate, onClose }) {
             </div>
           ))}
         </div>
-        <Inp label="Hatim Başlığı / Title" value={title} onChange={setTitle} placeholder={{ quran:'Ramazan Hatmi...', cevsen:'Ramazan Cevşeni...', buyukcevsen:'Büyük Cevşen Hatmi...', bediruhud:'Bedir & Uhud...' }[type]} required />
+        <Inp label="Hatim Başlığı / Title" value={title} onChange={setTitle} placeholder={{ quran:'Ramazan Hatmi...', cevsen:'Ramazan Cevşeni...', buyukcevsen:'Büyük Cevşen Hatmi...', bediruhud:'Bedir & Uhud...', tevhidname:'Tevhîdnâme Hatmi...' }[type]} required />
         <Inp label="Organizatör Adı / Your Name" value={organizer} onChange={setOrganizer} placeholder="Ahmed..." required />
         <Inp label="Son Tarih / Deadline (opsiyonel)" value={deadline} onChange={setDeadline} type="date" />
         {error && (
