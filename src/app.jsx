@@ -742,9 +742,6 @@ function MyPagesPanel({ pageList, currentUser, typeCfg, onCompletePages }) {
             {myDoneCount > 0 && <span style={{ color:'var(--primary)', fontWeight:700 }}>✓ {myDoneCount} tamamlandı</span>}
           </div>
         </div>
-        {myPending.length > 0 && (
-          <Btn variant="primary" small onClick={() => onCompletePages(myPending)}>✓ Tümünü Tamamla</Btn>
-        )}
       </div>
       {myPending.length > 0 ? (
         <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
