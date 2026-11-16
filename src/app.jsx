@@ -342,7 +342,24 @@ function generateHatimToken() {
   return Array.from(buf, b => chars[b % 62]).join('');
 }
 function formatDate(ts) { if (!ts) return ''; return new Date(ts).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' }); }
-function getHashRoute() { const h = window.location.hash; if (h.startsWith('#hatim/')) return { page:'hatim', id:h.slice(7) }; return { page:'dashboard' }; }
+// Hatim pages are #hatim/{token}. While one is open the URL also carries
+// ?h={token}: iPhone's "Add to Home Screen" saves the page URL and may drop the
+// #fragment, so the query keeps the home-screen icon pointing at this hatim.
+function getHashRoute() {
+  const h = window.location.hash;
+  if (h.startsWith('#hatim/')) return { page:'hatim', id:h.slice(7) };
+  if (!h) {
+    const q = new URLSearchParams(window.location.search).get('h');
+    if (q && /^[0-9a-zA-Z]{12}$/.test(q)) return { page:'hatim', id:q };
+  }
+  return { page:'dashboard' };
+}
+function syncHatimUrl(route) {
+  const want = route.page === 'hatim'
+    ? `${location.pathname}?h=${route.id}#hatim/${route.id}`
+    : location.pathname + location.hash;
+  if (location.pathname + location.search + location.hash !== want) history.replaceState(null, '', want);
+}
 
 // ── Firebase hooks ────────────────────────────────────────────────────────────
 function useHatim(token) {
@@ -507,7 +524,7 @@ function useHatimManifest(hatimToken, title) {
     fetch('manifest.json').then(r => r.json()).then(base => {
       if (cancelled) return;
       const abs = u => new URL(u, location.href).href;
-      const url = abs(`./#hatim/${hatimToken}`);
+      const url = abs(`./?h=${hatimToken}#hatim/${hatimToken}`);
       const name = title || base.name;
       const m = { ...base, name, short_name: name.length > 14 ? base.short_name : name, start_url: url, id: url, scope: abs('./'),
                   icons: base.icons.map(i => ({ ...i, src: abs(i.src) })) };
@@ -1095,7 +1112,8 @@ function App() {
   useEffect(() => {
     const onChange = () => setRoute(getHashRoute());
     window.addEventListener('hashchange', onChange);
-    return () => window.removeEventListener('hashchange', onChange);
+    window.addEventListener('popstate', onChange);
+    return () => { window.removeEventListener('hashchange', onChange); window.removeEventListener('popstate', onChange); };
   }, []);
 
   // Initialize Firebase from baked-in config
@@ -1107,8 +1125,10 @@ function App() {
     }
   }, []);
 
+  useEffect(() => { syncHatimUrl(route); }, [route]);
+
   const goToHatim = (id) => { window.location.hash = `hatim/${id}`; };
-  const goBack = () => { window.location.hash = ''; };
+  const goBack = () => { history.pushState(null, '', location.pathname); setRoute({ page:'dashboard' }); };
 
   if (!configured) {
     return (
