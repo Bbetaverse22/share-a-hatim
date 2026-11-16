@@ -286,14 +286,19 @@ const TAVSIYE_ZIKIRLER = [
 // Templates offered in the create dialog. A template is stored as a normal hatim
 // (Firebase rules only allow quran|cevsen as type) plus its own items list.
 const HATIM_TEMPLATES = {
-  buyukcevsen: { label: 'Büyük Cevşen', emoji: '📿', type: 'cevsen', items: BUYUK_CEVSEN_ITEMS },
+  buyukcevsen: { label: 'Büyük Cevşen', emoji: '📜', type: 'cevsen', items: BUYUK_CEVSEN_ITEMS },
   bediruhud: { label: 'Bedir & Uhud', emoji: '🕌', type: 'cevsen', items: BEDIR_UHUD_ITEMS },
+  zikirler: { label: 'Tavsiye Zikirler', emoji: '📿', type: 'cevsen', kind: 'zikir', zikirs: TAVSIYE_ZIKIRLER },
 };
 
 // Custom-list hatims (e.g. Büyük Cevşen imported from a spreadsheet) carry their own
 // item list: hatim.items = [{ label, section, link }]. Items are numbered from 1 in
 // pageList, and consecutive items with the same section form one card.
 function getTypeCfg(hatim) {
+  if (hatim && hatim.kind === 'zikir') {
+    return { label: 'Tavsiye Zikirler', emoji: hatim.emoji || '📿', zikirOnly: true, sections: [],
+             totalItems: Object.values(hatim.zikirs || {}).length, itemLabel: 'zikir', sectionLabel: '' };
+  }
   const items = hatim && hatim.items ? Object.values(hatim.items) : null;
   if (!items || !items.length) return TYPE_CONFIG[hatim && hatim.type] || TYPE_CONFIG.quran;
   const sections = [];
@@ -304,7 +309,7 @@ function getTypeCfg(hatim) {
   });
   return {
     label: 'Liste Hatmi',
-    emoji: hatim.emoji || HATIM_TEMPLATES.buyukcevsen.emoji,
+    emoji: hatim.emoji || '📜',
     sections,
     totalItems: items.length,
     itemLabel: 'okuma',
@@ -313,6 +318,23 @@ function getTypeCfg(hatim) {
     getItemName: n => (items[n-1] && items[n-1].label) || String(n),
     linkLabel: '📖 Oku',
   };
+}
+
+// done / in-progress counts for the header ring and dashboard card.
+// Zikir hatims: a zikir is "done" when its target is reached, "in progress" once counted.
+function getProgress(hatim, typeCfg) {
+  if (typeCfg.zikirOnly) {
+    const zs = Object.values(hatim.zikirs || {}); const counts = hatim.zikirCounts || {};
+    const done = zs.filter((z, i) => (counts[i] || 0) >= z.target).length;
+    const claimed = zs.filter((z, i) => (counts[i] || 0) > 0 && (counts[i] || 0) < z.target).length;
+    const total = zs.reduce((a, z) => a + z.target, 0);
+    const sum = zs.reduce((a, z, i) => a + Math.min(counts[i] || 0, z.target), 0);
+    return { done, claimed, pct: total ? Math.round(sum / total * 100) : 0 };
+  }
+  const pl = Object.values(hatim.pageList || {});
+  const done = pl.filter(e => e.completedAt).length;
+  const claimed = pl.filter(e => e.claimedBy && !e.completedAt).length;
+  return { done, claimed, pct: Math.round(done / typeCfg.totalItems * 100) };
 }
 
 // ── Themes ───────────────────────────────────────────────────────────────────
@@ -632,7 +654,6 @@ function CreateModal({ onCreate, onClose }) {
   const [organizer, setOrganizer] = useState('');
   const [deadline, setDeadline] = useState('');
   const [type, setType] = useState('quran');
-  const [withZikir, setWithZikir] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -643,8 +664,12 @@ function CreateModal({ onCreate, onClose }) {
     try {
       const tpl = HATIM_TEMPLATES[type];
       const data = { title:title.trim(), organizer:organizer.trim(), deadline, type: tpl ? tpl.type : type, createdAt:Date.now() };
-      if (tpl) { data.items = tpl.items; data.emoji = tpl.emoji; }
-      if (withZikir) data.zikirs = TAVSIYE_ZIKIRLER;
+      if (tpl) {
+        data.emoji = tpl.emoji;
+        if (tpl.items) data.items = tpl.items;
+        if (tpl.zikirs) data.zikirs = tpl.zikirs;
+        if (tpl.kind) data.kind = tpl.kind;
+      }
       await onCreate(data);
     } catch (e) {
       console.error(e);
@@ -665,13 +690,9 @@ function CreateModal({ onCreate, onClose }) {
             </div>
           ))}
         </div>
-        <Inp label="Hatim Başlığı / Title" value={title} onChange={setTitle} placeholder={type==='quran'?'Ramazan Hatmi...':type==='cevsen'?'Ramazan Cevşeni...':'Büyük Cevşen Hatmi...'} required />
+        <Inp label="Hatim Başlığı / Title" value={title} onChange={setTitle} placeholder={{ quran:'Ramazan Hatmi...', cevsen:'Ramazan Cevşeni...', buyukcevsen:'Büyük Cevşen Hatmi...', bediruhud:'Bedir & Uhud...', zikirler:'Haftalık Zikirler...' }[type]} required />
         <Inp label="Organizatör Adı / Your Name" value={organizer} onChange={setOrganizer} placeholder="Ahmed..." required />
         <Inp label="Son Tarih / Deadline (opsiyonel)" value={deadline} onChange={setDeadline} type="date" />
-        <label style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background:'var(--surfaceAlt)', cursor:'pointer', fontSize:13, color:'var(--text)', fontWeight:600 }}>
-          <input type="checkbox" checked={withZikir} onChange={e=>setWithZikir(e.target.checked)} style={{ width:18, height:18, accentColor:'var(--primary)' }} />
-          <span>📿 Tavsiye zikirleri ekle <span style={{ fontWeight:400, color:'var(--textMuted)' }}>· {TAVSIYE_ZIKIRLER.length} zikir, ortak sayaç</span></span>
-        </label>
         {error && (
           <div style={{ padding:'10px 12px', borderRadius:10, background:'oklch(95% 0.04 25)', color:'oklch(40% 0.15 25)', fontSize:12, fontWeight:700, lineHeight:1.5 }}>
             {error}
@@ -820,9 +841,7 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
 
   const pageList = hatim.pageList || {};
   const typeCfg = getTypeCfg(hatim);
-  const doneCount = Object.values(pageList).filter(e=>e.completedAt).length;
-  const claimedCount = Object.values(pageList).filter(e=>e.claimedBy&&!e.completedAt).length;
-  const pct = Math.round((doneCount/typeCfg.totalItems)*100);
+  const { done: doneCount, claimed: claimedCount, pct } = getProgress(hatim, typeCfg);
   const daysLeft = hatim.deadline ? Math.ceil((new Date(hatim.deadline)-new Date())/86400000) : null;
 
   const db = getDb();
@@ -876,14 +895,14 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
         </div>
         {doneCount===typeCfg.totalItems && (
           <div style={{ marginTop:14, background:'var(--goldLight)', border:'1.5px solid var(--gold)', borderRadius:12, padding:'12px 20px', textAlign:'center', fontFamily:'Amiri,serif', fontSize:20, color:'var(--primary)' }}>
-            🌙 Mâşaallah! Hatim tamamlandı. الحمد لله 🌙
+            🌙 Mâşaallah! {typeCfg.zikirOnly ? 'Zikirler' : 'Hatim'} tamamlandı. الحمد لله 🌙
           </div>
         )}
       </div>
 
       <MyPagesPanel pageList={pageList} currentUser={currentUser} typeCfg={typeCfg} onCompletePages={completePages} />
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(138px, 1fr))', gap:10 }}>
+      <div style={{ display: typeCfg.sections.length ? 'grid' : 'none', gridTemplateColumns:'repeat(auto-fill, minmax(138px, 1fr))', gap:10 }}>
         {typeCfg.sections.map(j => <JuzCard key={j.n} juz={j} pageList={pageList} onOpenPages={setOpenJuz} typeCfg={typeCfg} />)}
       </div>
       <div style={{ marginTop:24 }}><ZikirPanel hatimToken={hatimToken} zikirs={hatim.zikirs} counts={hatim.zikirCounts} /></div>
@@ -919,9 +938,7 @@ function DashboardHatimCard({ id, onOpen, onRemove }) {
 
   const pageList = hatim.pageList || {};
   const typeCfg = getTypeCfg(hatim);
-  const done = Object.values(pageList).filter(e=>e.completedAt).length;
-  const claimed = Object.values(pageList).filter(e=>e.claimedBy&&!e.completedAt).length;
-  const pct = Math.round((done/typeCfg.totalItems)*100);
+  const { done, claimed, pct } = getProgress(hatim, typeCfg);
 
   const removeFromList = () => { closeDel(); onRemove(id); };
   const deleteForEveryone = () => { closeDel(); softDeleteHatim(id); };
@@ -956,8 +973,8 @@ function DashboardHatimCard({ id, onOpen, onRemove }) {
         </div>
         <div style={{ display:'flex', gap:14, marginTop:6, fontSize:10, color:'var(--textMuted)', alignItems:'center' }}>
           <span style={{ color:'var(--primary)', fontWeight:700 }}>✓ {done} tamamlandı</span>
-          <span>📖 {claimed} okunuyor</span>
-          <span>○ {typeCfg.totalItems-done-claimed} boş</span>
+          <span>📖 {claimed} {typeCfg.zikirOnly ? 'devam' : 'okunuyor'}</span>
+          <span>○ {typeCfg.totalItems-done-claimed} {typeCfg.zikirOnly ? 'başlanmadı' : 'boş'}</span>
         </div>
       </div>
       {confirmDel && (
