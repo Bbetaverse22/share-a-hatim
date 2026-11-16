@@ -18,11 +18,6 @@
         },
         "deletedAt": {
           ".validate": "newData.isNumber()"
-        },
-        "zikirCounts": {
-          "$i": {
-            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000"
-          }
         }
       }
     }
