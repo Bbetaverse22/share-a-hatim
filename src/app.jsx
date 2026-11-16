@@ -89,6 +89,17 @@ function initFirebase(cfg) {
 // ── Local utils ───────────────────────────────────────────────────────────────
 function ls(key, def) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch { return def; } }
 function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+// Hatims created on this device. Only the creator's device sees "delete for everyone".
+function isOwnedHatim(token, hatim) {
+  if (ls('sha_owned_hatims', []).includes(token)) return true;
+  // Hatims created before ownership was tracked: fall back to matching the organizer name.
+  const me = String(ls('sha_user', '')).trim().toLowerCase();
+  return !!(hatim && me && String(hatim.organizer || '').trim().toLowerCase() === me);
+}
+function markOwnedHatim(token) { const o = ls('sha_owned_hatims', []); if (!o.includes(token)) lsSet('sha_owned_hatims', [token, ...o]); }
+// Soft delete: the data stays in Firebase with deletedAt set, so it can be restored.
+function softDeleteHatim(token) { return getDb().ref(`hatimByToken/${token}/deletedAt`).set(Date.now()); }
+function restoreHatim(token) { return getDb().ref(`hatimByToken/${token}/deletedAt`).remove(); }
 /** 32 bytes hex — must match `database.rules.json` token pattern. */
 function generateHatimToken() {
   const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -483,6 +494,17 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
     </div>
   );
 
+  if (hatim.deletedAt) return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:16, padding:20, textAlign:'center' }}>
+      <div style={{ fontFamily:'Amiri,serif', fontSize:44, color:'var(--gold)', opacity:0.5 }}>☽</div>
+      <p style={{ color:'var(--textMuted)' }}><strong style={{ color:'var(--text)' }}>"{hatim.title}"</strong> hatimi organizatör tarafından silindi.</p>
+      <div style={{ display:'flex', gap:10 }}>
+        {isOwnedHatim(hatimToken, hatim) && <Btn small onClick={()=>restoreHatim(hatimToken)}>↺ Geri Al</Btn>}
+        <Btn variant="ghost" small onClick={goBack}>← Geri</Btn>
+      </div>
+    </div>
+  );
+
   const pageList = hatim.pageList || {};
   const typeCfg = TYPE_CONFIG[hatim.type] || TYPE_CONFIG.quran;
   const doneCount = Object.values(pageList).filter(e=>e.completedAt).length;
@@ -564,9 +586,22 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
 function DashboardHatimCard({ id, onOpen, onRemove }) {
   const { hatim, loading } = useHatim(id);
   const [confirmDel, setConfirmDel] = useState(false);
+  const [confirmEveryone, setConfirmEveryone] = useState(false);
+  const closeDel = () => { setConfirmDel(false); setConfirmEveryone(false); };
 
   if (loading) return <div style={{ background:'var(--surface)', borderRadius:16, padding:'18px 22px', boxShadow:'var(--shadow)', border:'1.5px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', minHeight:80 }}><Spinner /></div>;
   if (!hatim) return null;
+  const owned = isOwnedHatim(id, hatim);
+
+  if (hatim.deletedAt) return (
+    <div className="fade-in" style={{ background:'var(--surface)', borderRadius:16, padding:'14px 22px', border:'1.5px dashed var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, opacity:0.8 }}>
+      <div style={{ fontSize:13, color:'var(--textMuted)' }}><strong style={{ color:'var(--text)' }}>{hatim.title}</strong> · silindi</div>
+      <div style={{ display:'flex', gap:8 }}>
+        {owned && <Btn small onClick={()=>restoreHatim(id)}>↺ Geri Al</Btn>}
+        <Btn small variant="ghost" onClick={()=>onRemove(id)}>Listemden kaldır</Btn>
+      </div>
+    </div>
+  );
 
   const pageList = hatim.pageList || {};
   const typeCfg = TYPE_CONFIG[hatim.type] || TYPE_CONFIG.quran;
@@ -574,10 +609,8 @@ function DashboardHatimCard({ id, onOpen, onRemove }) {
   const claimed = Object.values(pageList).filter(e=>e.claimedBy&&!e.completedAt).length;
   const pct = Math.round((done/typeCfg.totalItems)*100);
 
-  const handleDelete = () => {
-    getDb().ref(`hatimByToken/${id}`).remove();
-    onRemove(id);
-  };
+  const removeFromList = () => { closeDel(); onRemove(id); };
+  const deleteForEveryone = () => { closeDel(); softDeleteHatim(id); };
 
   return (
     <>
@@ -614,14 +647,33 @@ function DashboardHatimCard({ id, onOpen, onRemove }) {
         </div>
       </div>
       {confirmDel && (
-        <Modal title="Hatimi Sil" subtitle="Bu işlem geri alınamaz." onClose={()=>setConfirmDel(false)}>
-          <p style={{ fontSize:14, color:'var(--textMuted)', marginBottom:20, lineHeight:1.6 }}>
-            <strong style={{ color:'var(--text)' }}>"{hatim.title}"</strong> hatimini kalıcı olarak silmek istiyor musunuz?
-          </p>
-          <div style={{ display:'flex', gap:10 }}>
-            <Btn variant="danger" onClick={handleDelete} style={{ flex:1 }}>Evet, Sil</Btn>
-            <Btn variant="ghost" onClick={()=>setConfirmDel(false)} style={{ flex:1 }}>İptal</Btn>
-          </div>
+        <Modal title="Hatimi Kaldır" onClose={closeDel}>
+          {!confirmEveryone ? (
+            <>
+              <p style={{ fontSize:14, color:'var(--textMuted)', marginBottom:20, lineHeight:1.6 }}>
+                <strong style={{ color:'var(--text)' }}>"{hatim.title}"</strong> hatimini listenizden kaldırmak istiyor musunuz? Diğer katılımcılar etkilenmez, link açılmaya devam eder.
+              </p>
+              <div style={{ display:'flex', gap:10 }}>
+                <Btn onClick={removeFromList} style={{ flex:1 }}>Listemden Kaldır</Btn>
+                <Btn variant="ghost" onClick={closeDel} style={{ flex:1 }}>İptal</Btn>
+              </div>
+              {owned && (
+                <button onClick={()=>setConfirmEveryone(true)} style={{ marginTop:16, width:'100%', background:'none', border:'none', cursor:'pointer', fontSize:12, color:'oklch(55% 0.14 25)', textDecoration:'underline' }}>
+                  Organizatör olarak herkes için sil…
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize:14, color:'var(--textMuted)', marginBottom:20, lineHeight:1.6 }}>
+                <strong style={{ color:'var(--text)' }}>"{hatim.title}"</strong> hatimi <strong style={{ color:'var(--text)' }}>herkes için</strong> kapanacak. Linki açan herkes "silindi" mesajı görecek. Gerekirse bu cihazdan geri alabilirsiniz.
+              </p>
+              <div style={{ display:'flex', gap:10 }}>
+                <Btn variant="danger" onClick={deleteForEveryone} style={{ flex:1 }}>Evet, Herkes İçin Sil</Btn>
+                <Btn variant="ghost" onClick={closeDel} style={{ flex:1 }}>İptal</Btn>
+              </div>
+            </>
+          )}
         </Modal>
       )}
     </>
@@ -635,6 +687,7 @@ function Dashboard({ myHatimIds, addMyHatim, removeMyHatim, goToHatim }) {
     const token = generateHatimToken();
     const ref = getDb().ref(`hatimByToken/${token}`);
     await ref.set(data);
+    markOwnedHatim(token);
     addMyHatim(token);
     setShowCreate(false);
     goToHatim(token);
