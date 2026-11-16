@@ -440,7 +440,7 @@ function Inp({ label, value, onChange, type='text', placeholder, required, max, 
     <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
       {label && <label style={{ fontSize:12, fontWeight:800, color:'var(--textMuted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>}
       <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} required={required} max={max} min={min}
-        style={{ padding:'10px 14px', borderRadius:10, fontSize:14, border:'1.5px solid var(--border)', background:'var(--surface)', color:'var(--text)', fontFamily:'Nunito,sans-serif', outline:'none', transition:'border-color 0.2s' }}
+        style={{ padding:'10px 14px', borderRadius:10, fontSize:16, border:'1.5px solid var(--border)', background:'var(--surface)', color:'var(--text)', fontFamily:'Nunito,sans-serif', outline:'none', transition:'border-color 0.2s' }}
         onFocus={e=>e.target.style.borderColor='var(--gold)'} onBlur={e=>e.target.style.borderColor='var(--border)'} />
       {hint && <div style={{ fontSize:11, color:'var(--textMuted)', lineHeight:1.5 }}>{hint}</div>}
     </div>
@@ -514,14 +514,35 @@ function ShareModal({ hatimToken, onClose }) {
 }
 
 // ── Page Modal ────────────────────────────────────────────────────────────────
-function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePages, onUnclaimPage, onClose, typeCfg }) {
+function JuzPageModal({ juz, pageList, currentUser, setCurrentUser, knownNames, onClaimPages, onCompletePages, onUnclaimPage, onClose, typeCfg }) {
   typeCfg = typeCfg || TYPE_CONFIG.quran;
   const [nameInput, setNameInput] = useState('');
   const [selected, setSelected] = useState([]);
+  const [rangeMode, setRangeMode] = useState(false);
+  const [rangeStart, setRangeStart] = useState(null);
+
+  // Quick-fill names: this device's name first, then names already in this hatim.
+  const nameChips = useMemo(() => {
+    const out = [];
+    if (currentUser) out.push(currentUser);
+    (knownNames || []).forEach(n => { if (!out.includes(n)) out.push(n); });
+    return out.slice(0, 12);
+  }, [currentUser, knownNames]);
 
   const pages = useMemo(() => { const ps = []; for(let p=juz.start;p<=juz.end;p++) ps.push(p); return ps; }, [juz]);
   const getState = p => { const e = pageList[p]; if (!e) return 'free'; return e.completedAt ? 'done' : 'claimed'; };
-  const toggleSelect = p => { if (getState(p) !== 'free') return; setSelected(prev => prev.includes(p) ? prev.filter(x=>x!==p) : [...prev, p]); };
+  const toggleSelect = p => {
+    if (getState(p) !== 'free') return;
+    if (rangeMode) {
+      if (rangeStart === null) { setRangeStart(p); setSelected(prev => prev.includes(p) ? prev : [...prev, p]); return; }
+      const [a, b] = rangeStart < p ? [rangeStart, p] : [p, rangeStart];
+      const span = pages.filter(x => x >= a && x <= b && getState(x) === 'free');
+      setSelected(prev => [...new Set([...prev, ...span])]);
+      setRangeStart(null);
+      return;
+    }
+    setSelected(prev => prev.includes(p) ? prev.filter(x=>x!==p) : [...prev, p]);
+  };
 
   const done = pages.filter(p=>getState(p)==='done').length;
   const claimed = pages.filter(p=>getState(p)==='claimed').length;
@@ -557,14 +578,41 @@ function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePage
         </div>
         <Btn variant="gold" small onClick={claimAll} disabled={!nameInput.trim()||free===0}>Tümünü Üstlen</Btn>
       </div>
-      {selected.length > 0 && (
-        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10, padding:'8px 12px', background:'var(--goldLight)', borderRadius:10 }}>
-          <span style={{ flex:1, fontSize:13, fontWeight:600, color:'var(--text)' }}>{selected.length} {typeCfg.itemLabel} seçildi</span>
-          <Btn variant="primary" small onClick={claimSelected} disabled={!nameInput.trim()}>Üstlen</Btn>
-          <Btn variant="ghost" small onClick={()=>setSelected([])}>İptal</Btn>
+      {nameChips.length > 0 && (
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:12 }}>
+          {nameChips.map((n, i) => (
+            <button key={n} onClick={()=>setNameInput(n)}
+              style={{ fontSize:14, padding:'7px 12px', borderRadius:20, cursor:'pointer', fontWeight:700, fontFamily:'Nunito,sans-serif',
+                       border:`1.5px solid ${nameInput===n?'var(--primary)':'var(--border)'}`, background:nameInput===n?'var(--primary)':'var(--surface)', color:nameInput===n?'#fff':'var(--text)' }}>
+              {i===0 && n===currentUser ? '👤 ' : ''}{n}
+            </button>
+          ))}
         </div>
       )}
-      <div style={{ display:'grid', gridTemplateColumns:`repeat(auto-fill, minmax(${typeCfg.getItemName ? 120 : 68}px, 1fr))`, gap:6 }}>
+      {nameInput.trim() && nameInput.trim() !== currentUser && setCurrentUser && (
+        <button onClick={()=>setCurrentUser(nameInput.trim())}
+          style={{ display:'block', marginBottom:12, background:'none', border:'none', padding:0, cursor:'pointer', fontSize:12, color:'var(--primary)', fontWeight:700, textDecoration:'underline', fontFamily:'Nunito,sans-serif' }}>
+          👤 "{nameInput.trim()}" benim adım (Benim Sayfalarım'da göster)
+        </button>
+      )}
+      <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10, flexWrap:'wrap' }}>
+        <button onClick={()=>{ setRangeMode(m=>!m); setRangeStart(null); }}
+          style={{ fontSize:13, padding:'7px 12px', borderRadius:10, cursor:'pointer', fontWeight:700, fontFamily:'Nunito,sans-serif',
+                   border:`1.5px solid ${rangeMode?'var(--gold)':'var(--border)'}`, background:rangeMode?'var(--goldLight)':'var(--surface)', color:'var(--text)' }}>
+          ↔ Aralık seç {rangeMode ? 'açık' : ''}
+        </button>
+        <span style={{ fontSize:12, color:'var(--textMuted)' }}>
+          {rangeMode ? (rangeStart===null ? 'İlk sayfaya dokunun' : `${rangeStart}. ${typeCfg.itemLabel} seçildi, son sayfaya dokunun`) : 'İki dokunuşla aradaki hepsini seçin'}
+        </span>
+      </div>
+      {selected.length > 0 && (
+        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10, padding:'8px 12px', background:'var(--goldLight)', borderRadius:10 }}>
+          <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--text)' }}>{selected.length} {typeCfg.itemLabel} seçildi</span>
+          <Btn variant="primary" small onClick={claimSelected} disabled={!nameInput.trim()}>Üstlen</Btn>
+          <Btn variant="ghost" small onClick={()=>{ setSelected([]); setRangeStart(null); }}>İptal</Btn>
+        </div>
+      )}
+      <div style={{ display:'grid', gridTemplateColumns:`repeat(auto-fill, minmax(${typeCfg.getItemName ? 130 : 78}px, 1fr))`, gap:6 }}>
         {pages.map(p => {
           const st = getState(p); const e = pageList[p]||{}; const isSel = selected.includes(p);
           return (
@@ -574,27 +622,27 @@ function JuzPageModal({ juz, pageList, currentUser, onClaimPages, onCompletePage
               onMouseLeave={ev=>{ ev.currentTarget.style.transform='none'; }}
             >
               {typeCfg.getItemName
-                ? <div style={{ fontSize:12, fontWeight:800, color:isSel?'#fff':'var(--text)', lineHeight:1.25, wordBreak:'break-word' }}>{typeCfg.getItemName(p)}</div>
+                ? <div style={{ fontSize:13, fontWeight:800, color:isSel?'#fff':'var(--text)', lineHeight:1.25, wordBreak:'break-word' }}>{typeCfg.getItemName(p)}</div>
                 : <>
-                    <div style={{ fontSize:15, fontWeight:800, color:isSel?'#fff':'var(--text)', lineHeight:1 }}>{p}</div>
-                    <div style={{ fontSize:9, color:isSel?'rgba(255,255,255,0.7)':'var(--textMuted)', marginTop:1 }}>{itemLabel}</div>
+                    <div style={{ fontSize:17, fontWeight:800, color:isSel?'#fff':'var(--text)', lineHeight:1 }}>{p}</div>
+                    <div style={{ fontSize:11, color:isSel?'rgba(255,255,255,0.7)':'var(--textMuted)', marginTop:1 }}>{itemLabel}</div>
                   </>}
-              {st==='claimed' && <div style={{ fontSize:9, color:'var(--primary)', fontWeight:700, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.claimedBy}</div>}
-              {st==='done' && <div style={{ fontSize:9, color:'var(--primary)', fontWeight:800, marginTop:2 }}>✓ {e.claimedBy}</div>}
+              {st==='claimed' && <div style={{ fontSize:12, color:'var(--primary)', fontWeight:800, marginTop:3, lineHeight:1.2, wordBreak:'break-word' }}>{e.claimedBy}</div>}
+              {st==='done' && <div style={{ fontSize:12, color:'var(--primary)', fontWeight:800, marginTop:3, lineHeight:1.2, wordBreak:'break-word' }}>✓ {e.claimedBy}</div>}
               <a href={getItemLink(p)} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
-                style={{ display:'block', fontSize:9, color:isSel?'rgba(255,255,255,0.9)':'var(--gold)', fontWeight:700, marginTop:3, textDecoration:'none' }}>{linkLabel}</a>
+                style={{ display:'block', fontSize:11, color:isSel?'rgba(255,255,255,0.9)':'var(--gold)', fontWeight:700, marginTop:4, textDecoration:'none' }}>{linkLabel}</a>
               {st==='claimed' && (
-                <div style={{ display:'flex', gap:2, marginTop:3, justifyContent:'center' }}>
-                  <button onClick={ev=>{ev.stopPropagation();onCompletePages([p]);}} style={{ fontSize:9, padding:'2px 5px', borderRadius:5, border:'none', cursor:'pointer', background:'var(--primary)', color:'#fff', fontWeight:700 }}>✓</button>
-                  <button onClick={ev=>{ev.stopPropagation();onUnclaimPage(p);}} style={{ fontSize:9, padding:'2px 5px', borderRadius:5, cursor:'pointer', background:'transparent', color:'var(--textMuted)', border:'1px solid var(--border)' }}>✕</button>
+                <div style={{ display:'flex', gap:4, marginTop:5, justifyContent:'center' }}>
+                  <button onClick={ev=>{ev.stopPropagation();onCompletePages([p]);}} style={{ fontSize:12, padding:'4px 9px', borderRadius:5, border:'none', cursor:'pointer', background:'var(--primary)', color:'#fff', fontWeight:700 }}>✓</button>
+                  <button onClick={ev=>{ev.stopPropagation();onUnclaimPage(p);}} style={{ fontSize:12, padding:'4px 9px', borderRadius:5, cursor:'pointer', background:'transparent', color:'var(--textMuted)', border:'1px solid var(--border)' }}>✕</button>
                 </div>
               )}
             </div>
           );
         })}
       </div>
-      <p style={{ fontSize:11, color:'var(--textMuted)', marginTop:12, textAlign:'center' }}>
-        Birden fazla {typeCfg.itemLabel} seçmek için üzerine tıklayın.
+      <p style={{ fontSize:12, color:'var(--textMuted)', marginTop:12, textAlign:'center' }}>
+        Birden fazla {typeCfg.itemLabel} seçmek için üzerine dokunun.
       </p>
     </Modal>
   );
@@ -622,25 +670,25 @@ function JuzCard({ juz, pageList, onOpenPages, typeCfg }) {
       onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='var(--shadow)';}}
       onClick={()=>onOpenPages(juz)}
     >
-      {state==='done'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--primary)', color:'#fff', fontSize:9, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>✓ Tamam</div>}
-      {state==='partial'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--gold)', color:'#fff', fontSize:9, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>Devam</div>}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <span style={{ fontSize:10, fontWeight:800, color:'var(--textMuted)', letterSpacing:'0.07em' }}>{juz.title ? juz.title.toLocaleUpperCase('tr-TR') : `${juz.n}. ${typeCfg.sectionLabel}`}</span>
-        <span style={{ fontSize:9, color:'var(--textMuted)', whiteSpace:'nowrap' }}>{juz.title ? pages.length : `${juz.start}–${juz.end}`}</span>
+      {state==='done'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--primary)', color:'#fff', fontSize:10, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>✓ Tamam</div>}
+      {state==='partial'&&<div style={{ position:'absolute', top:0, right:0, background:'var(--gold)', color:'#fff', fontSize:10, fontWeight:800, padding:'3px 8px', borderBottomLeftRadius:9 }}>Devam</div>}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:6, marginTop:14 }}>
+        <span style={{ fontSize:11, fontWeight:800, color:'var(--textMuted)', letterSpacing:'0.06em' }}>{juz.title ? juz.title.toLocaleUpperCase('tr-TR') : `${juz.n}. ${typeCfg.sectionLabel}`}</span>
+        <span style={{ fontSize:11, color:'var(--textMuted)', whiteSpace:'nowrap' }}>{juz.title ? pages.length : `${juz.start}–${juz.end}`}</span>
       </div>
       <div style={{ marginTop:4 }}>
         <div style={{ height:3, borderRadius:3, background:'var(--border)', overflow:'hidden', marginBottom:4 }}>
           <div style={{ height:'100%', width:`${pagePct}%`, background:'var(--gold)', transition:'width 0.5s ease', borderRadius:3 }} />
         </div>
-        <div style={{ display:'flex', justifyContent:'space-between', fontSize:9, color:'var(--textMuted)' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--textMuted)' }}>
           <span style={{ color:'var(--primary)', fontWeight:700 }}>✓ {pageDone}</span>
           <span>📖 {pageClaimed}</span>
           <span>○ {pageFree}</span>
         </div>
         {names.length > 0 && (
-          <div style={{ fontSize:8, color:'var(--textMuted)', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center' }}>{namesLabel}</div>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', marginTop:5, lineHeight:1.3, textAlign:'center', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', wordBreak:'break-word' }}>{namesLabel}</div>
         )}
-        <div style={{ textAlign:'center', fontSize:10, color:'var(--gold)', fontWeight:700, marginTop:4 }}>
+        <div style={{ textAlign:'center', fontSize:12, color:'var(--gold)', fontWeight:700, marginTop:5 }}>
           {state==='done'?'🌙 Tamamlandı':`→ Aç`}
         </div>
       </div>
@@ -846,8 +894,14 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
 
   const db = getDb();
 
+  // Names already used in this hatim, most frequent first (for quick-fill chips).
+  const knownNames = Object.entries(Object.values(pageList).reduce((m, e) => { if (e.claimedBy) m[e.claimedBy] = (m[e.claimedBy] || 0) + 1; return m; }, {}))
+    .sort((a, b) => b[1] - a[1]).map(([n]) => n);
+
   const claimPages = (pageNums, name) => {
-    setCurrentUser(name);
+    // Remember the first name used on this device as "me"; assigning pages to
+    // others afterwards must not change whose pages "My Pages" shows.
+    if (!currentUser) setCurrentUser(name);
     const updates = {};
     pageNums.forEach(p => { if (!pageList[p]) updates[`hatimByToken/${hatimToken}/pageList/${p}`] = { claimedBy:name, claimedAt:Date.now() }; });
     db.ref().update(updates);
@@ -907,7 +961,7 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
       </div>
       <div style={{ marginTop:24 }}><ZikirPanel hatimToken={hatimToken} zikirs={hatim.zikirs} counts={hatim.zikirCounts} /></div>
 
-      {openJuz && <JuzPageModal juz={openJuz} pageList={pageList} currentUser={currentUser}
+      {openJuz && <JuzPageModal juz={openJuz} pageList={pageList} currentUser={currentUser} setCurrentUser={setCurrentUser} knownNames={knownNames}
         onClaimPages={claimPages} onCompletePages={completePages} onUnclaimPage={unclaimPage}
         onClose={()=>setOpenJuz(null)} typeCfg={typeCfg} />}
       {showShare && <ShareModal hatimToken={hatimToken} onClose={()=>setShowShare(false)} />}
