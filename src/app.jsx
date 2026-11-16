@@ -478,33 +478,15 @@ function ShareModal({ hatimToken, onClose }) {
 }
 
 // ── Page Modal ────────────────────────────────────────────────────────────────
-function JuzPageModal({ juz, pageList, currentUser, setCurrentUser, knownNames, onClaimPages, onCompletePages, onUnclaimPage, onClose, typeCfg }) {
+function JuzPageModal({ juz, pageList, onClaimPages, onCompletePages, onUnclaimPage, onClose, typeCfg }) {
   typeCfg = typeCfg || TYPE_CONFIG.quran;
   const [nameInput, setNameInput] = useState('');
   const [selected, setSelected] = useState([]);
-  const [rangeMode, setRangeMode] = useState(false);
-  const [rangeStart, setRangeStart] = useState(null);
-
-  // Quick-fill names: this device's name first, then names already in this hatim.
-  const nameChips = useMemo(() => {
-    const out = [];
-    if (currentUser) out.push(currentUser);
-    (knownNames || []).forEach(n => { if (!out.includes(n)) out.push(n); });
-    return out.slice(0, 12);
-  }, [currentUser, knownNames]);
 
   const pages = useMemo(() => { const ps = []; for(let p=juz.start;p<=juz.end;p++) ps.push(p); return ps; }, [juz]);
   const getState = p => { const e = pageList[p]; if (!e) return 'free'; return e.completedAt ? 'done' : 'claimed'; };
   const toggleSelect = p => {
     if (getState(p) !== 'free') return;
-    if (rangeMode) {
-      if (rangeStart === null) { setRangeStart(p); setSelected(prev => prev.includes(p) ? prev : [...prev, p]); return; }
-      const [a, b] = rangeStart < p ? [rangeStart, p] : [p, rangeStart];
-      const span = pages.filter(x => x >= a && x <= b && getState(x) === 'free');
-      setSelected(prev => [...new Set([...prev, ...span])]);
-      setRangeStart(null);
-      return;
-    }
     setSelected(prev => prev.includes(p) ? prev.filter(x=>x!==p) : [...prev, p]);
   };
 
@@ -542,38 +524,11 @@ function JuzPageModal({ juz, pageList, currentUser, setCurrentUser, knownNames, 
         </div>
         <Btn variant="gold" small onClick={claimAll} disabled={!nameInput.trim()||free===0}>Tümünü Üstlen</Btn>
       </div>
-      {nameChips.length > 0 && (
-        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:12 }}>
-          {nameChips.map((n, i) => (
-            <button key={n} onClick={()=>setNameInput(n)}
-              style={{ fontSize:14, padding:'7px 12px', borderRadius:20, cursor:'pointer', fontWeight:700, fontFamily:'Nunito,sans-serif',
-                       border:`1.5px solid ${nameInput===n?'var(--primary)':'var(--border)'}`, background:nameInput===n?'var(--primary)':'var(--surface)', color:nameInput===n?'#fff':'var(--text)' }}>
-              {i===0 && n===currentUser ? '👤 ' : ''}{n}
-            </button>
-          ))}
-        </div>
-      )}
-      {nameInput.trim() && nameInput.trim() !== currentUser && setCurrentUser && (
-        <button onClick={()=>setCurrentUser(nameInput.trim())}
-          style={{ display:'block', marginBottom:12, background:'none', border:'none', padding:0, cursor:'pointer', fontSize:12, color:'var(--primary)', fontWeight:700, textDecoration:'underline', fontFamily:'Nunito,sans-serif' }}>
-          👤 "{nameInput.trim()}" benim adım (Benim Sayfalarım'da göster)
-        </button>
-      )}
-      <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10, flexWrap:'wrap' }}>
-        <button onClick={()=>{ setRangeMode(m=>!m); setRangeStart(null); }}
-          style={{ fontSize:13, padding:'7px 12px', borderRadius:10, cursor:'pointer', fontWeight:700, fontFamily:'Nunito,sans-serif',
-                   border:`1.5px solid ${rangeMode?'var(--gold)':'var(--border)'}`, background:rangeMode?'var(--goldLight)':'var(--surface)', color:'var(--text)' }}>
-          ↔ Aralık seç {rangeMode ? 'açık' : ''}
-        </button>
-        <span style={{ fontSize:12, color:'var(--textMuted)' }}>
-          {rangeMode ? (rangeStart===null ? 'İlk sayfaya dokunun' : `${rangeStart}. ${typeCfg.itemLabel} seçildi, son sayfaya dokunun`) : 'İki dokunuşla aradaki hepsini seçin'}
-        </span>
-      </div>
       {selected.length > 0 && (
         <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10, padding:'8px 12px', background:'var(--goldLight)', borderRadius:10 }}>
           <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--text)' }}>{selected.length} {typeCfg.itemLabel} seçildi</span>
           <Btn variant="primary" small onClick={claimSelected} disabled={!nameInput.trim()}>Üstlen</Btn>
-          <Btn variant="ghost" small onClick={()=>{ setSelected([]); setRangeStart(null); }}>İptal</Btn>
+          <Btn variant="ghost" small onClick={()=>setSelected([])}>İptal</Btn>
         </div>
       )}
       <div style={{ display:'grid', gridTemplateColumns:`repeat(auto-fill, minmax(${typeCfg.getItemName ? 130 : 78}px, 1fr))`, gap:6 }}>
@@ -803,14 +758,10 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
 
   const db = getDb();
 
-  // Names already used in this hatim, most frequent first (for quick-fill chips).
-  const knownNames = Object.entries(Object.values(pageList).reduce((m, e) => { if (e.claimedBy) m[e.claimedBy] = (m[e.claimedBy] || 0) + 1; return m; }, {}))
-    .sort((a, b) => b[1] - a[1]).map(([n]) => n);
-
   const claimPages = (pageNums, name) => {
-    // Only remember a name as "me" after asking: organizers often assign pages
-    // to other people, and that must not become this device's name.
-    if (!currentUser && window.confirm(`"${name}" sizin adınız mı?\n\nEvet derseniz bu sayfalar "Benim Sayfalarım" bölümünde görünür. Başkası adına aldıysanız İptal'e basın.`)) setCurrentUser(name);
+    // Only remember a name as "me" after asking, so pages taken for someone else
+    // never become this device's name. Asked again only when the name differs.
+    if (name !== currentUser && window.confirm(`"${name}" sizin adınız mı?\n\nEvet derseniz bu sayfalar "Benim Sayfalarım" bölümünde görünür. Başkası adına aldıysanız İptal'e basın.`)) setCurrentUser(name);
     const updates = {};
     pageNums.forEach(p => { if (!pageList[p]) updates[`hatimByToken/${hatimToken}/pageList/${p}`] = { claimedBy:name, claimedAt:Date.now() }; });
     db.ref().update(updates);
@@ -869,7 +820,7 @@ function HatimPage({ hatimToken, addMyHatim, goBack, currentUser, setCurrentUser
         {typeCfg.sections.map(j => <JuzCard key={j.n} juz={j} pageList={pageList} onOpenPages={setOpenJuz} typeCfg={typeCfg} />)}
       </div>
 
-      {openJuz && <JuzPageModal juz={openJuz} pageList={pageList} currentUser={currentUser} setCurrentUser={setCurrentUser} knownNames={knownNames}
+      {openJuz && <JuzPageModal juz={openJuz} pageList={pageList}
         onClaimPages={claimPages} onCompletePages={completePages} onUnclaimPage={unclaimPage}
         onClose={()=>setOpenJuz(null)} typeCfg={typeCfg} />}
       {showShare && <ShareModal hatimToken={hatimToken} onClose={()=>setShowShare(false)} />}
